@@ -59,9 +59,18 @@
                     <h1 class="text-lg md:text-xl font-bold flex items-center gap-2">
                         <i class="fa-solid fa-file-invoice-dollar text-yellow-300"></i> <span id="appTitleHeader">Kas RT 005 MMR</span>
                     </h1>
-                    <p class="text-[11px] md:text-xs text-emerald-100">Pencatatan Keuangan & Monitoring Tunggakan Warga</p>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <p class="text-[11px] md:text-xs text-emerald-100">Pencatatan Keuangan & Monitoring Tunggakan Warga</p>
+                        <span id="syncStatusBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-200 border border-emerald-600 flex items-center gap-1">
+                            <i class="fa-solid fa-cloud"></i> Memuat...
+                        </span>
+                    </div>
                 </div>
                 <div class="flex gap-2 text-xs flex-wrap items-center">
+                    <button onclick="muatDataDariCloud(true)" title="Segarkan Data dari Google Sheets" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg border border-emerald-500 font-semibold transition flex items-center gap-1 shadow">
+                        <i class="fa-solid fa-arrows-rotate" id="iconRefreshCloud"></i> <span class="hidden sm:inline">Refresh</span>
+                    </button>
+
                     <button onclick="toggleWargaMode()" id="btnWargaMode" class="bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1.5 rounded-lg border border-amber-500 font-semibold transition flex items-center gap-1 shadow">
                         <i class="fa-solid fa-lock" id="iconWargaMode"></i> <span id="textWargaMode">Mode Pengurus</span>
                     </button>
@@ -151,11 +160,11 @@
                     <div class="admin-only no-print bg-slate-50 p-3 rounded border border-slate-200 mb-4 grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Nama RT / Judul:</label>
-                            <input type="text" id="inputNamaRT" oninput="updateInfoLaporan()" onfocus="this.select()" class="w-full border rounded px-2 py-1 font-bold focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <input type="text" id="inputNamaRT" onchange="updateInfoLaporan()" onfocus="this.select()" class="w-full border rounded px-2 py-1 font-bold focus:ring-2 focus:ring-emerald-500 outline-none">
                         </div>
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Nama Pos / Label Header:</label>
-                            <input type="text" id="inputLabelKas" oninput="updateInfoLaporan()" class="w-full border rounded px-2 py-1 font-bold focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <input type="text" id="inputLabelKas" onchange="updateInfoLaporan()" class="w-full border rounded px-2 py-1 font-bold focus:ring-2 focus:ring-emerald-500 outline-none">
                         </div>
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Pilih Bulan Periode:</label>
@@ -163,7 +172,7 @@
                         </div>
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Set Saldo Awal (Lalu):</label>
-                            <input type="number" id="inputSaldoLalu" placeholder="0" oninput="updateInfoLaporan()" onchange="updateInfoLaporan()" onfocus="this.select()" class="w-full border rounded px-2 py-1 font-mono font-bold focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <input type="number" id="inputSaldoLalu" placeholder="0" onchange="updateInfoLaporan()" onfocus="this.select()" class="w-full border rounded px-2 py-1 font-mono font-bold focus:ring-2 focus:ring-emerald-500 outline-none">
                         </div>
                     </div>
 
@@ -437,13 +446,11 @@
         </main>
     </div>
 
-    <!-- MODAL POPUP TANDA TERIMA / KUITANSI PEMBAYARAN (SUDAH DIRAPIHKAN UNTUK GAMBAR PNG) -->
+    <!-- MODAL POPUP TANDA TERIMA / KUITANSI PEMBAYARAN -->
     <div id="modalKuitansi" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-3">
         <div id="modalKuitansiContent" class="bg-white rounded-xl shadow-2xl max-w-[350px] w-full overflow-hidden border border-slate-300">
             
-            <!-- Area yang dirender menjadi Gambar PNG -->
             <div id="areaGambarKuitansi" class="bg-white">
-                <!-- Kop Kuitansi (Menggunakan Table agar Presisi 100% di html2canvas) -->
                 <table class="w-full bg-emerald-800 text-white border-b-4 border-yellow-400">
                     <tr>
                         <td class="px-4 py-3 text-left align-middle">
@@ -456,14 +463,11 @@
                     </tr>
                 </table>
 
-                <!-- Isi Kuitansi -->
                 <div class="p-4 text-xs relative bg-white">
-                    <!-- Stempel Lunas yang Rapi -->
                     <div style="position: absolute; right: 16px; top: 46px; transform: rotate(-10deg);" class="border-2 border-emerald-600/35 text-emerald-600/35 font-extrabold px-2.5 py-1 rounded uppercase tracking-widest text-[11px] leading-none pointer-events-none select-none">
                         LUNAS / SAH
                     </div>
 
-                    <!-- Baris Ref & Tanggal -->
                     <table class="w-full border-b border-dashed border-slate-300 pb-2 mb-3 text-[11px] text-slate-500">
                         <tr>
                             <td class="text-left">Ref: <strong class="text-slate-800 font-mono" id="kuitansiNoRef">#KW-000</strong></td>
@@ -471,17 +475,14 @@
                         </tr>
                     </table>
 
-                    <!-- Nama Pembayar -->
                     <div class="mb-3">
                         <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Telah Terima Dari:</div>
                         <div class="font-bold text-slate-900 text-sm leading-snug" id="kuitansiNamaWarga">Bpk. Ahmad (A-01)</div>
                     </div>
 
-                    <!-- Keterangan & Badge Pos Kas -->
                     <div class="mb-3">
                         <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Untuk Pembayaran:</div>
                         <div class="font-semibold text-slate-800 text-xs leading-snug mb-1.5" id="kuitansiKeterangan">Iuran Bulan November (November 2026)</div>
-                        <!-- Badge Pos Kas dengan Table Cell agar tidak bergeser saat export gambar -->
                         <table class="border-collapse">
                             <tr>
                                 <td class="bg-slate-100 border border-slate-300 text-slate-700 font-bold text-[10px] px-2 py-0.5 rounded leading-normal" id="kuitansiPos">
@@ -491,7 +492,6 @@
                         </table>
                     </div>
 
-                    <!-- Kotak Nominal (Menggunakan Table agar tidak ada offset vertikal) -->
                     <table class="w-full bg-emerald-50 border border-emerald-200 rounded-lg mt-2 mb-3">
                         <tr>
                             <td class="px-3 py-2.5 text-left align-middle text-[11px] font-bold text-emerald-900 uppercase">
@@ -503,7 +503,6 @@
                         </tr>
                     </table>
 
-                    <!-- Footer Tanda Tangan -->
                     <table class="w-full border-t border-dashed border-slate-300 pt-3 mt-2 text-[10px] text-slate-600">
                         <tr>
                             <td class="align-bottom text-left pr-2">
@@ -518,7 +517,6 @@
                 </div>
             </div>
 
-            <!-- Tombol Aksi Kuitansi (Tidak ikut tercetak maupun masuk ke gambar PNG) -->
             <div class="bg-slate-100 px-3 py-2.5 flex flex-col gap-1.5 border-t no-print">
                 <div class="flex gap-1.5">
                     <button onclick="downloadGambarKuitansi()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-2 rounded text-[11px] flex items-center justify-center gap-1 shadow transition">
@@ -542,6 +540,11 @@
     </div>
 
     <script>
+        // =========================================================================
+        // TEMPEL URL WEB APP GOOGLE APPS SCRIPT BAPAK DI BAWAH INI:
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx5J39iW3kFqJFElozDp6FA5gwnIW7WEtHVU1M-Lw26gDnjhJYGLQkrbeuM15r9hrBH/exec";
+        // =========================================================================
+
         const PASSWORD_PENGURUS = "1234";
 
         const BULAN_LIST = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -578,10 +581,18 @@
             document.getElementById('tglMasuk').valueAsDate = new Date();
             document.getElementById('tglKeluar').valueAsDate = new Date();
             
+            sinkronkanFormPengaturan();
+            renderAllViews();
+            muatDataDariCloud(false);
+        });
+
+        function sinkronkanFormPengaturan() {
             document.getElementById('inputSaldoLalu').value = saldoLalu;
             document.getElementById('inputLabelKas').value = labelKas;
             document.getElementById('inputNamaRT').value = namaRT;
+        }
 
+        function renderAllViews() {
             renderYearOptions();
             renderSelectHeaderBulan();
             renderSelects();
@@ -590,7 +601,103 @@
             renderLaporanTable();
             renderMatriks();
             renderFilterBulanTunggakan();
-        });
+            renderTunggakan();
+        }
+
+        function setSyncBadge(status, text) {
+            const badge = document.getElementById('syncStatusBadge');
+            if (status === 'loading') {
+                badge.className = "text-[10px] px-2 py-0.5 rounded-full bg-amber-600/80 text-white border border-amber-400 flex items-center gap-1";
+                badge.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${text}`;
+            } else if (status === 'success') {
+                badge.className = "text-[10px] px-2 py-0.5 rounded-full bg-emerald-900/90 text-emerald-200 border border-emerald-500 flex items-center gap-1";
+                badge.innerHTML = `<i class="fa-solid fa-cloud-check"></i> ${text}`;
+            } else if (status === 'offline') {
+                badge.className = "text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-200 border border-slate-500 flex items-center gap-1";
+                badge.innerHTML = `<i class="fa-solid fa-hard-drive"></i> ${text}`;
+            } else {
+                badge.className = "text-[10px] px-2 py-0.5 rounded-full bg-rose-700 text-white border border-rose-400 flex items-center gap-1";
+                badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${text}`;
+            }
+        }
+
+        // TARIK DATA TERBARU DARI GOOGLE SHEETS
+        async function muatDataDariCloud(isManual = false) {
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "TEMPEL_URL_DISINI") {
+                setSyncBadge('offline', 'Mode Lokal (URL Cloud belum diisi)');
+                return;
+            }
+
+            const iconRef = document.getElementById('iconRefreshCloud');
+            if (iconRef) iconRef.classList.add('fa-spin');
+            setSyncBadge('loading', 'Sinkronisasi...');
+
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL + '?t=' + Date.now());
+                const data = await response.json();
+
+                if (data && (data.masterWarga || data.transaksi)) {
+                    if (data.masterWarga) masterWarga = data.masterWarga;
+                    if (data.masterPos) masterPos = data.masterPos;
+                    if (data.transaksi) transaksi = data.transaksi;
+                    if (data.saldoLalu !== undefined) saldoLalu = parseFloat(data.saldoLalu) || 0;
+                    if (data.namaRT) namaRT = data.namaRT;
+                    if (data.labelKas) labelKas = data.labelKas;
+                    if (data.bulanHeader) bulanHeader = data.bulanHeader;
+
+                    simpanKeLocalStorage();
+                    sinkronkanFormPengaturan();
+                    renderAllViews();
+                    setSyncBadge('success', 'Tersinkron Google Sheets');
+                    if (isManual) alert('Data berhasil diperbarui dari Google Sheets!');
+                } else {
+                    // Sheet masih kosong, kirim data awal jika mode pengurus
+                    setSyncBadge('success', 'Cloud Siap');
+                }
+            } catch (err) {
+                console.error(err);
+                setSyncBadge('error', 'Offline / Gagal Koneksi Cloud');
+            } finally {
+                if (iconRef) iconRef.classList.remove('fa-spin');
+            }
+        }
+
+        // SIMPAN DATA KE LOCALSTORAGE + KIRIM OTOMATIS KE GOOGLE SHEETS
+        async function simpanSemuaData() {
+            simpanKeLocalStorage();
+
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "TEMPEL_URL_DISINI") {
+                return;
+            }
+
+            setSyncBadge('loading', 'Menyimpan ke Cloud...');
+            const payload = {
+                namaRT, labelKas, bulanHeader, saldoLalu, masterWarga, masterPos, transaksi
+            };
+
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                setSyncBadge('success', 'Tersimpan di Google Sheets');
+            } catch (err) {
+                console.error(err);
+                setSyncBadge('error', 'Gagal Simpan ke Cloud');
+            }
+        }
+
+        function simpanKeLocalStorage() {
+            localStorage.setItem('rt005_warga', JSON.stringify(masterWarga));
+            localStorage.setItem('rt005_pos_keuangan', JSON.stringify(masterPos));
+            localStorage.setItem('rt005_transaksi', JSON.stringify(transaksi));
+            localStorage.setItem('rt005_saldo_lalu', saldoLalu);
+            localStorage.setItem('rt005_nama_rt', namaRT);
+            localStorage.setItem('rt005_label_kas', labelKas);
+            localStorage.setItem('rt005_bulan_header', bulanHeader);
+        }
 
         function toggleWargaMode() {
             if (isWargaMode) {
@@ -718,19 +825,19 @@
             const namaBaru = input.value.trim();
             if(namaBaru && !masterPos.includes(namaBaru)) {
                 masterPos.push(namaBaru);
-                localStorage.setItem('rt005_pos_keuangan', JSON.stringify(masterPos));
                 input.value = '';
                 renderPosKeuanganOptions();
                 renderLaporanTable();
+                simpanSemuaData();
             }
         }
 
         function hapusPosKeuangan(idx) {
             if(confirm('Hapus Pos Keuangan ini?')) {
                 masterPos.splice(idx, 1);
-                localStorage.setItem('rt005_pos_keuangan', JSON.stringify(masterPos));
                 renderPosKeuanganOptions();
                 renderLaporanTable();
+                simpanSemuaData();
             }
         }
 
@@ -776,12 +883,8 @@
             const valSaldo = document.getElementById('inputSaldoLalu').value;
             saldoLalu = (valSaldo !== '' && !isNaN(valSaldo)) ? parseFloat(valSaldo) : 0;
 
-            localStorage.setItem('rt005_nama_rt', namaRT);
-            localStorage.setItem('rt005_label_kas', labelKas);
-            localStorage.setItem('rt005_bulan_header', bulanHeader);
-            localStorage.setItem('rt005_saldo_lalu', saldoLalu);
-
             renderLaporanTable();
+            simpanSemuaData();
         }
 
         function renderTunggakan() {
@@ -865,7 +968,7 @@
                 document.getElementById('ketMasuk').value = '';
                 document.getElementById('jumlahMasuk').value = '';
 
-                localStorage.setItem('rt005_transaksi', JSON.stringify(transaksi));
+                simpanSemuaData();
                 switchTab('laporan');
                 bukaKuitansi(newId);
             } else {
@@ -878,7 +981,7 @@
                 document.getElementById('ketKeluar').value = '';
                 document.getElementById('jumlahKeluar').value = '';
 
-                localStorage.setItem('rt005_transaksi', JSON.stringify(transaksi));
+                simpanSemuaData();
                 alert('Transaksi Keluar Berhasil Disimpan!');
                 switchTab('laporan');
             }
@@ -963,8 +1066,8 @@
         function hapusTransaksi(id) {
             if(confirm('Hapus transaksi ini?')) {
                 transaksi = transaksi.filter(t => t.id !== id);
-                localStorage.setItem('rt005_transaksi', JSON.stringify(transaksi));
                 renderLaporanTable();
+                simpanSemuaData();
             }
         }
 
@@ -1010,11 +1113,11 @@
             const blok = document.getElementById('inputBlok').value;
             const nama = document.getElementById('inputNama').value;
             masterWarga.push({ blok, nama });
-            localStorage.setItem('rt005_warga', JSON.stringify(masterWarga));
             document.getElementById('inputBlok').value = '';
             document.getElementById('inputNama').value = '';
             renderTabelWarga();
             renderSelects();
+            simpanSemuaData();
         }
 
         function importWargaExcel(e) {
@@ -1042,10 +1145,10 @@
                     });
 
                     if (count > 0) {
-                        localStorage.setItem('rt005_warga', JSON.stringify(masterWarga));
                         alert(`Berhasil menambahkan ${count} data warga dari Excel!`);
                         renderTabelWarga();
                         renderSelects();
+                        simpanSemuaData();
                     } else {
                         alert("Gagal membaca data. Pastikan nama header di Excel adalah 'Blok' dan 'Nama'.");
                     }
@@ -1059,18 +1162,18 @@
         function kosongkanDataWarga() {
             if(confirm('Kosongkan seluruh daftar warga? (Data transaksi tidak akan terhapus)')) {
                 masterWarga = [];
-                localStorage.setItem('rt005_warga', JSON.stringify(masterWarga));
                 renderTabelWarga();
                 renderSelects();
+                simpanSemuaData();
             }
         }
 
         function hapusWarga(idx) {
             if(confirm('Hapus warga ini?')) {
                 masterWarga.splice(idx, 1);
-                localStorage.setItem('rt005_warga', JSON.stringify(masterWarga));
                 renderTabelWarga();
                 renderSelects();
+                simpanSemuaData();
             }
         }
 
@@ -1094,14 +1197,18 @@
                 try {
                     const data = JSON.parse(evt.target.result);
                     if(data.masterWarga && data.transaksi) {
-                        localStorage.setItem('rt005_warga', JSON.stringify(data.masterWarga));
-                        localStorage.setItem('rt005_transaksi', JSON.stringify(data.transaksi));
-                        if(data.masterPos) localStorage.setItem('rt005_pos_keuangan', JSON.stringify(data.masterPos));
-                        if(data.saldoLalu !== undefined) localStorage.setItem('rt005_saldo_lalu', data.saldoLalu);
-                        if(data.namaRT) localStorage.setItem('rt005_nama_rt', data.namaRT);
-                        if(data.labelKas) localStorage.setItem('rt005_label_kas', data.labelKas);
-                        alert('Data Berhasil Di-import!');
-                        location.reload();
+                        masterWarga = data.masterWarga;
+                        transaksi = data.transaksi;
+                        if(data.masterPos) masterPos = data.masterPos;
+                        if(data.saldoLalu !== undefined) saldoLalu = parseFloat(data.saldoLalu) || 0;
+                        if(data.namaRT) namaRT = data.namaRT;
+                        if(data.labelKas) labelKas = data.labelKas;
+                        if(data.bulanHeader) bulanHeader = data.bulanHeader;
+
+                        sinkronkanFormPengaturan();
+                        renderAllViews();
+                        simpanSemuaData();
+                        alert('Data Berhasil Di-import dan Disinkronkan ke Google Sheets!');
                     } else {
                         alert('Format file backup tidak valid!');
                     }
@@ -1119,7 +1226,12 @@
         function resetData() {
             if(confirm('Reset seluruh transaksi kembali ke awal?')) {
                 localStorage.clear();
-                location.reload();
+                masterWarga = DEFAULT_WARGA;
+                masterPos = DEFAULT_POS;
+                transaksi = [];
+                saldoLalu = 0;
+                simpanSemuaData();
+                setTimeout(() => location.reload(), 800);
             }
         }
     </script>
