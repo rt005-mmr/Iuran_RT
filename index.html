@@ -71,7 +71,7 @@
                         <i class="fa-solid fa-arrows-rotate" id="iconRefreshCloud"></i> <span class="hidden sm:inline">Refresh</span>
                     </button>
 
-                    <button onclick="toggleWargaMode()" id="btnWargaMode" class="bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1.5 rounded-lg border border-amber-500 font-semibold transition flex items-center gap-1 shadow">
+                    <button onclick="toggleWargaMode()" id="btnWargaMode" class="bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1.5 rounded-lg border border-amber-500 font-semibold transition flex items-center gap-1 shadow disabled:opacity-60">
                         <i class="fa-solid fa-lock" id="iconWargaMode"></i> <span id="textWargaMode">Mode Pengurus</span>
                     </button>
 
@@ -545,8 +545,6 @@
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx5J39iW3kFqJFElozDp6FA5gwnIW7WEtHVU1M-Lw26gDnjhJYGLQkrbeuM15r9hrBH/exec";
         // =========================================================================
 
-        const PASSWORD_PENGURUS = "1234";
-
         const BULAN_LIST = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
         const CURRENT_YEAR = new Date().getFullYear();
 
@@ -575,6 +573,7 @@
         let namaRT = localStorage.getItem('rt005_nama_rt') || 'RT 005 MMR';
 
         let isWargaMode = true;
+        let sessionPasswordPengurus = "";
         let currentReceiptFilename = 'Kuitansi_RT.png';
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -651,7 +650,6 @@
                     setSyncBadge('success', 'Tersinkron Google Sheets');
                     if (isManual) alert('Data berhasil diperbarui dari Google Sheets!');
                 } else {
-                    // Sheet masih kosong, kirim data awal jika mode pengurus
                     setSyncBadge('success', 'Cloud Siap');
                 }
             } catch (err) {
@@ -662,7 +660,7 @@
             }
         }
 
-        // SIMPAN DATA KE LOCALSTORAGE + KIRIM OTOMATIS KE GOOGLE SHEETS
+        // SIMPAN DATA KE LOCALSTORAGE + KIRIM OTOMATIS KE GOOGLE SHEETS DENGAN VALIDASI PASSWORD SERVER
         async function simpanSemuaData() {
             simpanKeLocalStorage();
 
@@ -671,18 +669,28 @@
             }
 
             setSyncBadge('loading', 'Menyimpan ke Cloud...');
-            const payload = {
+            const dataToSave = {
                 namaRT, labelKas, bulanHeader, saldoLalu, masterWarga, masterPos, transaksi
             };
 
             try {
-                await fetch(GOOGLE_SCRIPT_URL, {
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        action: 'save',
+                        password: sessionPasswordPengurus,
+                        payload: dataToSave
+                    })
                 });
-                setSyncBadge('success', 'Tersimpan di Google Sheets');
+                const resData = await response.json();
+
+                if (resData.status === 'success') {
+                    setSyncBadge('success', 'Tersimpan di Google Sheets');
+                } else {
+                    setSyncBadge('error', 'Ditolak Server (Cek Password)');
+                    alert('Gagal menyimpan ke server: Password sesi tidak valid. Silakan login ulang di Mode Pengurus.');
+                }
             } catch (err) {
                 console.error(err);
                 setSyncBadge('error', 'Gagal Simpan ke Cloud');
@@ -699,20 +707,50 @@
             localStorage.setItem('rt005_bulan_header', bulanHeader);
         }
 
-        function toggleWargaMode() {
+        // VERIFIKASI PASSWORD LANGSUNG DI SERVER GOOGLE APPS SCRIPT
+        async function toggleWargaMode() {
             if (isWargaMode) {
                 const pass = prompt("Masukkan Password Pengurus RT:");
-                if (pass === PASSWORD_PENGURUS) {
-                    isWargaMode = false;
-                    document.body.classList.remove('warga-mode');
-                    document.getElementById('textWargaMode').innerText = "Mode Warga";
-                    document.getElementById('iconWargaMode').className = "fa-solid fa-eye";
-                    document.getElementById('btnWargaMode').classList.replace('bg-amber-600', 'bg-emerald-700');
-                    alert("Berhasil masuk sebagai Pengurus!");
-                } else if (pass !== null) {
-                    alert("Password Salah! Akses Pengurus ditolak.");
+                if (!pass) return;
+
+                if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "TEMPEL_URL_DISINI") {
+                    alert("URL Google Apps Script belum diisi pada kode index.html!");
+                    return;
+                }
+
+                const btn = document.getElementById('btnWargaMode');
+                const txt = document.getElementById('textWargaMode');
+                btn.disabled = true;
+                txt.innerText = "Memeriksa...";
+
+                try {
+                    const response = await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'login', password: pass })
+                    });
+                    const resData = await response.json();
+
+                    if (resData.status === 'authorized') {
+                        sessionPasswordPengurus = pass;
+                        isWargaMode = false;
+                        document.body.classList.remove('warga-mode');
+                        txt.innerText = "Mode Warga";
+                        document.getElementById('iconWargaMode').className = "fa-solid fa-eye";
+                        btn.classList.replace('bg-amber-600', 'bg-emerald-700');
+                        alert("Berhasil masuk sebagai Pengurus!");
+                    } else {
+                        alert("Password Salah! Akses Pengurus ditolak.");
+                        txt.innerText = "Mode Pengurus";
+                    }
+                } catch (err) {
+                    alert("Gagal terhubung ke server Google untuk verifikasi password. Pastikan internet aktif dan Deployment Apps Script sudah versi terbaru.");
+                    txt.innerText = "Mode Pengurus";
+                } finally {
+                    btn.disabled = false;
                 }
             } else {
+                sessionPasswordPengurus = "";
                 isWargaMode = true;
                 document.body.classList.add('warga-mode');
                 document.getElementById('textWargaMode').innerText = "Mode Pengurus";
@@ -1223,15 +1261,15 @@
             window.print();
         }
 
-        function resetData() {
+        async function resetData() {
             if(confirm('Reset seluruh transaksi kembali ke awal?')) {
                 localStorage.clear();
                 masterWarga = DEFAULT_WARGA;
                 masterPos = DEFAULT_POS;
                 transaksi = [];
                 saldoLalu = 0;
-                simpanSemuaData();
-                setTimeout(() => location.reload(), 800);
+                await simpanSemuaData();
+                location.reload();
             }
         }
     </script>
