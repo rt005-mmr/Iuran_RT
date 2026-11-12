@@ -707,11 +707,12 @@
             localStorage.setItem('rt005_bulan_header', bulanHeader);
         }
 
-        // VERIFIKASI PASSWORD LANGSUNG DI SERVER GOOGLE APPS SCRIPT
+        // VERIFIKASI PASSWORD LANGSUNG DI SERVER GOOGLE APPS SCRIPT (DENGAN DIAGNOSA ERROR)
         async function toggleWargaMode() {
             if (isWargaMode) {
-                const pass = prompt("Masukkan Password Pengurus RT:");
-                if (!pass) return;
+                const rawPass = prompt("Masukkan Password Pengurus RT:");
+                if (!rawPass) return;
+                const pass = rawPass.trim();
 
                 if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "TEMPEL_URL_DISINI") {
                     alert("URL Google Apps Script belum diisi pada kode index.html!");
@@ -729,7 +730,17 @@
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify({ action: 'login', password: pass })
                     });
-                    const resData = await response.json();
+                    
+                    const rawText = await response.text();
+                    let resData;
+                    
+                    try {
+                        resData = JSON.parse(rawText);
+                    } catch (parseErr) {
+                        alert("Server Google tidak membalas format JSON (kemungkinan deployment belum 'New version' atau izin akses bukan 'Anyone').\n\nBalasan mentah server:\n" + rawText.slice(0, 250));
+                        txt.innerText = "Mode Pengurus";
+                        return;
+                    }
 
                     if (resData.status === 'authorized') {
                         sessionPasswordPengurus = pass;
@@ -740,11 +751,11 @@
                         btn.classList.replace('bg-amber-600', 'bg-emerald-700');
                         alert("Berhasil masuk sebagai Pengurus!");
                     } else {
-                        alert("Password Salah! Akses Pengurus ditolak.");
+                        alert("Akses Ditolak!\n\nDetail dari Server Google:\n" + JSON.stringify(resData, null, 2));
                         txt.innerText = "Mode Pengurus";
                     }
                 } catch (err) {
-                    alert("Gagal terhubung ke server Google untuk verifikasi password. Pastikan internet aktif dan Deployment Apps Script sudah versi terbaru.");
+                    alert("Gagal terhubung ke server Google:\n" + err.message);
                     txt.innerText = "Mode Pengurus";
                 } finally {
                     btn.disabled = false;
