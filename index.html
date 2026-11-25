@@ -6,7 +6,7 @@
     <title>Laporan Kas & Tunggakan RT 005 MMR</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Pustaka SheetJS untuk Baca File Excel -->
+    <!-- Pustaka SheetJS untuk Baca & Export File Excel (.xlsx) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Pustaka html2canvas untuk Convert Kuitansi ke Gambar PNG -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -176,7 +176,7 @@
                         </div>
                     </div>
 
-                    <!-- Baris Filter (Tampil untuk Warga maupun Pengurus) -->
+                    <!-- Baris Filter & Export Excel -->
                     <div class="no-print flex justify-between items-center mb-3 flex-wrap gap-2 text-xs">
                         <div class="relative flex-1 min-w-[180px]">
                             <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400"></i>
@@ -191,6 +191,9 @@
                                 <label class="font-bold text-slate-600">Pos:</label>
                                 <select id="filterPosLaporan" onchange="renderLaporanTable()" class="border rounded px-2 py-1.5 font-semibold text-slate-700 border-slate-300"></select>
                             </div>
+                            <button onclick="exportLaporanExcel()" title="Unduh Laporan ke Excel (.xlsx)" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1 shadow transition">
+                                <i class="fa-solid fa-file-excel"></i> Excel
+                            </button>
                         </div>
                     </div>
 
@@ -202,7 +205,7 @@
                                     <th class="p-2 border border-emerald-800 text-left">Keterangan Transaksi</th>
                                     <th class="p-2 border border-emerald-800 w-28 sm:w-32">Masuk</th>
                                     <th class="p-2 border border-emerald-800 w-28 sm:w-32">Keluar</th>
-                                    <th class="p-2 border border-emerald-800 w-24 no-print">Aksi</th>
+                                    <th class="p-2 border border-emerald-800 w-28 no-print">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="tabelLaporanBody"></tbody>
@@ -220,9 +223,9 @@
                             <h2 class="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2">
                                 <i class="fa-solid fa-user-clock text-rose-600"></i> Daftar Penunggak Iuran Warga
                             </h2>
-                            <p class="text-xs text-slate-500">Menampilkan daftar warga yang belum melunasi iuran s.d. bulan terpilih.</p>
+                            <p class="text-xs text-slate-500">Menampilkan daftar warga yang belum melunasi iuran aktif s.d. bulan terpilih.</p>
                         </div>
-                        <div class="flex items-center gap-3 no-print">
+                        <div class="flex items-center gap-2 flex-wrap no-print">
                             <div class="text-xs">
                                 <label class="font-bold text-slate-700 mr-1">Sampai Bulan:</label>
                                 <select id="filterBulanTunggakan" onchange="renderTunggakan()" class="border rounded px-2 py-1 text-xs font-bold border-slate-300"></select>
@@ -231,7 +234,21 @@
                                 <label class="font-bold text-slate-700 mr-1">Tahun:</label>
                                 <select id="filterTahunTunggakan" onchange="renderTunggakan()" class="border rounded px-2 py-1 text-xs font-bold border-slate-300"></select>
                             </div>
+                            <button onclick="exportTunggakanExcel()" title="Unduh Daftar Tunggakan ke Excel (.xlsx)" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-2.5 py-1 rounded text-xs flex items-center gap-1 shadow transition">
+                                <i class="fa-solid fa-file-excel"></i> Excel
+                            </button>
                         </div>
+                    </div>
+
+                    <!-- Filter Pencarian & Blok/Gang di Tab Tunggakan -->
+                    <div class="no-print flex flex-wrap gap-2 mb-4 text-xs">
+                        <div class="relative flex-1 min-w-[180px]">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400"></i>
+                            <input type="text" id="searchTunggakanInput" onkeyup="renderTunggakan()" placeholder="Cari blok (mis: S14) atau nama warga..." class="w-full border rounded-lg pl-8 pr-3 py-1.5 focus:ring-2 focus:ring-rose-500 outline-none">
+                        </div>
+                        <select id="filterBlokTunggakan" onchange="renderTunggakan()" class="border rounded-lg px-2.5 py-1.5 font-semibold text-slate-700 border-slate-300">
+                            <option value="ALL">Semua Blok / Gang</option>
+                        </select>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5 no-print">
@@ -244,7 +261,7 @@
                         </div>
                         <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-lg flex justify-between items-center">
                             <div>
-                                <span class="text-xs text-amber-800 font-bold uppercase">Estimasi Total Tunggakan (Tarif 50rb/bln)</span>
+                                <span class="text-xs text-amber-800 font-bold uppercase" id="labelTarifTunggakan">Estimasi Total Tunggakan</span>
                                 <div class="text-xl font-extrabold text-amber-900 mt-0.5" id="sumNominalTunggakan">Rp 0</div>
                             </div>
                             <i class="fa-solid fa-hand-holding-dollar text-2xl text-amber-400"></i>
@@ -285,28 +302,29 @@
                                 <select id="posMasuk" class="w-full border rounded-lg p-2 text-sm font-semibold"></select>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Keterangan Transaksi</label>
-                                <input type="text" id="ketMasuk" placeholder="Contoh: Iuran Warga Bulan Ini" required class="w-full border rounded-lg p-2 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Pilih Warga (Opsional)</label>
-                                <select id="selectWargaMasuk" class="w-full border rounded-lg p-2 text-sm">
-                                    <option value="">-- Umum / Tanpa Warga --</option>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Pilih Warga (Isi jika Iuran Bulanan)</label>
+                                <select id="selectWargaMasuk" onchange="onWargaMasukChange()" class="w-full border rounded-lg p-2 text-sm">
+                                    <option value="">-- Umum / Pemasukan Non-Iuran --</option>
                                 </select>
                             </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Bulan Ceklis</label>
-                                    <select id="bulanMasuk" class="w-full border rounded-lg p-2 text-sm"></select>
+
+                            <!-- Area Ceklis Multi-Bulan (Hanya tampil jika warga dipilih) -->
+                            <div id="areaCeklisIuran" class="hidden bg-emerald-50/70 border border-emerald-200 rounded-lg p-3 space-y-2.5">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-xs font-bold text-emerald-900 uppercase">Pilih Bulan Iuran (Bisa Rapel):</label>
+                                    <select id="tahunMasuk" onchange="updateStatusBulanMasuk()" class="border border-emerald-300 rounded px-2 py-0.5 text-xs font-bold bg-white text-emerald-900"></select>
                                 </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Tahun Ceklis</label>
-                                    <select id="tahunMasuk" class="w-full border rounded-lg p-2 text-sm font-bold"></select>
-                                </div>
+                                <div id="checkboxBulanGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-1.5 text-xs"></div>
+                                <p id="infoStatusLunasWarga" class="text-[11px] text-emerald-800 italic"></p>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Keterangan Transaksi</label>
+                                <input type="text" id="ketMasuk" placeholder="Contoh: Iuran Warga / Sumbangan" required class="w-full border rounded-lg p-2 text-sm">
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nominal Masuk (Rp)</label>
-                                <input type="number" id="jumlahMasuk" placeholder="0" min="1" required class="w-full border rounded-lg p-2 text-sm font-mono">
+                                <input type="number" id="jumlahMasuk" placeholder="0" min="1" required class="w-full border rounded-lg p-2 text-sm font-mono font-bold">
                             </div>
                             <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg shadow transition">
                                 Simpan & Buat Tanda Terima
@@ -329,11 +347,11 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Keterangan Transaksi</label>
-                                <input type="text" id="ketKeluar" placeholder="Contoh: Dansos / Snack Tarhib masjid" required class="w-full border rounded-lg p-2 text-sm">
+                                <input type="text" id="ketKeluar" placeholder="Contoh: Dansos / Snack Kerja Bakti" required class="w-full border rounded-lg p-2 text-sm">
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nominal Keluar (Rp)</label>
-                                <input type="number" id="jumlahKeluar" placeholder="0" min="1" required class="w-full border rounded-lg p-2 text-sm font-mono">
+                                <input type="number" id="jumlahKeluar" placeholder="0" min="1" required class="w-full border rounded-lg p-2 text-sm font-mono font-bold">
                             </div>
                             <button type="submit" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 rounded-lg shadow transition">
                                 Simpan Transaksi Keluar
@@ -346,13 +364,28 @@
             <!-- TAB 4: MATRIKS WARGA -->
             <div id="page-matriks" class="tab-page hidden">
                 <div class="bg-white p-4 sm:p-5 rounded-xl shadow-md border border-slate-200">
-                    <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                    <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
                         <h2 class="font-bold text-slate-800">Matriks Ceklis Iuran Warga</h2>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <label class="text-xs font-bold">Tahun:</label>
                             <select id="filterTahunMatriks" onchange="renderMatriks()" class="border rounded px-2 py-1 text-sm font-bold"></select>
+                            <button onclick="exportMatriksExcel()" title="Unduh Matriks Iuran ke Excel (.xlsx)" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-2.5 py-1 rounded text-xs flex items-center gap-1 shadow transition no-print">
+                                <i class="fa-solid fa-file-excel"></i> Excel
+                            </button>
                         </div>
                     </div>
+
+                    <!-- Filter Pencarian & Blok/Gang di Tab Matriks -->
+                    <div class="no-print flex flex-wrap gap-2 mb-3 text-xs">
+                        <div class="relative flex-1 min-w-[180px]">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400"></i>
+                            <input type="text" id="searchMatriksInput" onkeyup="renderMatriks()" placeholder="Cari blok atau nama warga..." class="w-full border rounded-lg pl-8 pr-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none">
+                        </div>
+                        <select id="filterBlokMatriks" onchange="renderMatriks()" class="border rounded-lg px-2.5 py-1.5 font-semibold text-slate-700 border-slate-300">
+                            <option value="ALL">Semua Blok / Gang</option>
+                        </select>
+                    </div>
+
                     <div class="overflow-x-auto">
                         <table class="w-full text-xs text-center border-collapse border border-slate-300">
                             <thead>
@@ -383,12 +416,33 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     
                     <div class="bg-white p-4 sm:p-5 rounded-xl shadow-md border border-slate-200 no-print admin-only space-y-5">
+                        <!-- Pengaturan Iuran & Periode Mulai Tagihan -->
                         <div>
+                            <h2 class="font-bold text-slate-800 border-b pb-2 mb-3 flex items-center gap-1.5">
+                                <i class="fa-solid fa-sliders text-amber-600"></i> Pengaturan Iuran & Tagihan
+                            </h2>
+                            <div class="space-y-2.5 text-xs">
+                                <div>
+                                    <label class="block font-semibold text-slate-600 uppercase mb-1">Tarif Iuran Per Bulan (Rp)</label>
+                                    <input type="number" id="inputTarifIuran" onchange="updatePengaturanIuran()" min="0" class="w-full border rounded p-2 text-sm font-mono font-bold">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold text-slate-600 uppercase mb-1">Mulai Berlaku Tagihan</label>
+                                    <div class="grid grid-cols-2 gap-1.5">
+                                        <select id="selectMulaiBulan" onchange="updatePengaturanIuran()" class="border rounded p-1.5 text-xs font-bold"></select>
+                                        <select id="selectMulaiTahun" onchange="updatePengaturanIuran()" class="border rounded p-1.5 text-xs font-bold"></select>
+                                    </div>
+                                    <p class="text-[10px] text-slate-500 mt-1">Bulan sebelum periode mulai ini tidak akan pernah dihitung sebagai tunggakan.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t pt-4">
                             <h2 class="font-bold text-slate-800 border-b pb-2 mb-3">Tambah Warga Manual</h2>
                             <form onsubmit="tambahWarga(event)" class="space-y-3">
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Blok / Rumah</label>
-                                    <input type="text" id="inputBlok" placeholder="A-01" required class="w-full border rounded p-2 text-sm">
+                                    <input type="text" id="inputBlok" placeholder="S14/01" required class="w-full border rounded p-2 text-sm">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nama Kepala Keluarga</label>
@@ -428,14 +482,14 @@
 
                     <div class="bg-white p-4 sm:p-5 rounded-xl shadow-md border border-slate-200 md:col-span-2">
                         <div class="flex justify-between items-center border-b pb-2 mb-3">
-                            <h2 class="font-bold text-slate-800">Daftar Warga <span id="labelSubJudulWarga">RT 005</span></h2>
+                            <h2 class="font-bold text-slate-800">Daftar Warga <span id="labelSubJudulWarga">RT 005</span> (<span id="jumlahTotalWarga">0</span> KK)</h2>
                             <button onclick="kosongkanDataWarga()" class="text-xs text-rose-600 hover:underline font-semibold admin-only no-print">
                                 Kosongkan Data Warga
                             </button>
                         </div>
-                        <div class="overflow-y-auto max-h-96">
+                        <div class="overflow-y-auto max-h-[520px]">
                             <table class="w-full text-sm text-left">
-                                <thead class="bg-slate-100 text-xs text-slate-700 uppercase border-b">
+                                <thead class="bg-slate-100 text-xs text-slate-700 uppercase border-b sticky top-0">
                                     <tr>
                                         <th class="p-2">Blok / Rumah</th>
                                         <th class="p-2">Nama Warga</th>
@@ -451,6 +505,50 @@
             </div>
 
         </main>
+    </div>
+
+    <!-- MODAL EDIT TRANSAKSI -->
+    <div id="modalEditTransaksi" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-3">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-300">
+            <div class="bg-emerald-800 text-white px-4 py-3 flex justify-between items-center">
+                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-pen-to-square"></i> Edit Transaksi</h3>
+                <button onclick="tutupModalEdit()" class="text-emerald-200 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="simpanEditTransaksi(event)" class="p-4 space-y-3 text-xs">
+                <input type="hidden" id="editTrxId">
+                <div>
+                    <label class="block font-semibold text-slate-600 uppercase mb-1">Tanggal</label>
+                    <input type="date" id="editTgl" required class="w-full border rounded-lg p-2 text-sm">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 uppercase mb-1">Pos Keuangan</label>
+                    <select id="editPos" class="w-full border rounded-lg p-2 text-sm font-semibold"></select>
+                </div>
+                <div id="editAreaWarga">
+                    <label class="block font-semibold text-slate-600 uppercase mb-1">Warga (Opsional)</label>
+                    <select id="editWarga" class="w-full border rounded-lg p-2 text-sm"></select>
+                </div>
+                <div id="editAreaBulanTahun" class="bg-slate-50 border rounded-lg p-2.5 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="font-bold text-slate-700 uppercase">Bulan Iuran:</label>
+                        <select id="editTahun" class="border rounded px-2 py-0.5 text-xs font-bold"></select>
+                    </div>
+                    <div id="editCheckboxBulanGrid" class="grid grid-cols-4 gap-1 text-[11px]"></div>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 uppercase mb-1">Keterangan Transaksi</label>
+                    <input type="text" id="editKet" required class="w-full border rounded-lg p-2 text-sm">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 uppercase mb-1">Nominal (Rp)</label>
+                    <input type="number" id="editJumlah" min="1" required class="w-full border rounded-lg p-2 text-sm font-mono font-bold">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg shadow">Simpan Perubahan</button>
+                    <button type="button" onclick="tutupModalEdit()" class="bg-slate-300 hover:bg-slate-400 text-slate-800 font-bold px-4 py-2 rounded-lg">Batal</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- MODAL POPUP TANDA TERIMA / KUITANSI PEMBAYARAN -->
@@ -548,20 +646,18 @@
 
     <script>
         // =========================================================================
-        // TEMPEL URL WEB APP GOOGLE APPS SCRIPT BAPAK DI BAWAH INI:
+        // URL WEB APP GOOGLE APPS SCRIPT:
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx5J39iW3kFqJFElozDp6FA5gwnIW7WEtHVU1M-Lw26gDnjhJYGLQkrbeuM15r9hrBH/exec";
         // =========================================================================
 
         const BULAN_LIST = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
         const BULAN_SHORT_LIST = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
         
-        // Dinamis mengikuti tanggal kalender hari ini secara otomatis
         const NOW_DATE = new Date();
         const CURRENT_YEAR = NOW_DATE.getFullYear();
         const CURRENT_MONTH_IDX = NOW_DATE.getMonth();
         const CURRENT_PERIODE_CODE = `${BULAN_SHORT_LIST[CURRENT_MONTH_IDX]}-${CURRENT_YEAR.toString().slice(-2)}`;
 
-        // Otomatis menyediakan daftar periode dari tahun lalu, tahun ini, hingga 2 tahun ke depan
         const BULAN_SHORT_OPTIONS = [];
         for (let y = CURRENT_YEAR - 1; y <= CURRENT_YEAR + 2; y++) {
             BULAN_SHORT_LIST.forEach(b => {
@@ -585,9 +681,14 @@
         let saldoLalu = (savedSaldo !== null && savedSaldo !== '') ? parseFloat(savedSaldo) : 0;
         
         let labelKas = localStorage.getItem('rt005_label_kas') || 'Kas Kecil';
-        // Default menggunakan 'AUTO' agar selalu mengikuti bulan & tahun kalender secara otomatis
         let bulanHeader = localStorage.getItem('rt005_bulan_header') || 'AUTO';
         let namaRT = localStorage.getItem('rt005_nama_rt') || 'RT 005 MMR';
+
+        // Pengaturan baru: Tarif Iuran Dinamis, Mulai Berlaku Tagihan, dan Timestamp Sinkronisasi
+        let tarifIuran = parseFloat(localStorage.getItem('rt005_tarif_iuran')) || 50000;
+        let mulaiTagihanBulan = parseInt(localStorage.getItem('rt005_mulai_bulan') ?? '11'); // Default Desember (index 11)
+        let mulaiTagihanTahun = parseInt(localStorage.getItem('rt005_mulai_tahun') ?? CURRENT_YEAR);
+        let lastCloudTimestamp = parseInt(localStorage.getItem('rt005_last_updated')) || 0;
 
         let isWargaMode = true;
         let sessionPasswordPengurus = "";
@@ -597,21 +698,32 @@
             document.getElementById('tglMasuk').valueAsDate = new Date();
             document.getElementById('tglKeluar').valueAsDate = new Date();
             
+            renderCheckboxBulanMasuk();
             sinkronkanFormPengaturan();
             renderAllViews();
             muatDataDariCloud(false);
         });
 
+        // Helper untuk mendapatkan array bulan dari satu transaksi (mendukung format lama t.bulan string & format baru t.bulanList array)
+        function getTransaksiBulanList(t) {
+            if (Array.isArray(t.bulanList) && t.bulanList.length > 0) return t.bulanList;
+            if (t.bulan) return [t.bulan];
+            return [];
+        }
+
         function sinkronkanFormPengaturan() {
             document.getElementById('inputSaldoLalu').value = saldoLalu;
             document.getElementById('inputLabelKas').value = labelKas;
             document.getElementById('inputNamaRT').value = namaRT;
+            document.getElementById('inputTarifIuran').value = tarifIuran;
         }
 
         function renderAllViews() {
             renderYearOptions();
+            renderPengaturanMulaiTagihan();
             renderSelectHeaderBulan();
             renderSelects();
+            renderBlokFilterOptions();
             renderPosKeuanganOptions();
             renderTabelWarga();
             renderLaporanTable();
@@ -660,6 +772,10 @@
                     if (data.namaRT) namaRT = data.namaRT;
                     if (data.labelKas) labelKas = data.labelKas;
                     if (data.bulanHeader) bulanHeader = data.bulanHeader;
+                    if (data.tarifIuran !== undefined) tarifIuran = parseFloat(data.tarifIuran) || 50000;
+                    if (data.mulaiTagihanBulan !== undefined) mulaiTagihanBulan = parseInt(data.mulaiTagihanBulan);
+                    if (data.mulaiTagihanTahun !== undefined) mulaiTagihanTahun = parseInt(data.mulaiTagihanTahun);
+                    if (data.lastUpdated) lastCloudTimestamp = parseInt(data.lastUpdated);
 
                     simpanKeLocalStorage();
                     sinkronkanFormPengaturan();
@@ -677,20 +793,41 @@
             }
         }
 
-        // SIMPAN DATA KE LOCALSTORAGE + KIRIM OTOMATIS KE GOOGLE SHEETS
-        async function simpanSemuaData() {
+        // SIMPAN DATA KE LOCALSTORAGE + PENGECEKAN VERSI CLOUD SEBELUM MENYIMPAN
+        async function simpanSemuaData(forceOverwrite = false) {
             simpanKeLocalStorage();
 
             if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "TEMPEL_URL_DISINI") {
                 return;
             }
 
-            setSyncBadge('loading', 'Menyimpan ke Cloud...');
-            const dataToSave = {
-                namaRT, labelKas, bulanHeader, saldoLalu, masterWarga, masterPos, transaksi
-            };
+            setSyncBadge('loading', 'Memeriksa & Menyimpan...');
 
             try {
+                // Cek versi data terbaru di server sebelum menimpa (mencegah bentrok 2 pengurus input bersamaan)
+                if (!forceOverwrite && lastCloudTimestamp > 0) {
+                    const checkRes = await fetch(GOOGLE_SCRIPT_URL + '?t=' + Date.now());
+                    const cloudData = await checkRes.json();
+                    if (cloudData && cloudData.lastUpdated && parseInt(cloudData.lastUpdated) > lastCloudTimestamp) {
+                        const lanjutTimpa = confirm(
+                            "PERHATIAN: Terdapat perubahan data terbaru di Google Sheets yang diinput oleh pengurus lain!\n\n" +
+                            "Klik OK untuk tetap menyimpan perubahan Bapak (menimpa data server), atau klik BATAL untuk memuat ulang data terbaru dari server."
+                        );
+                        if (!lanjutTimpa) {
+                            await muatDataDariCloud(false);
+                            return;
+                        }
+                    }
+                }
+
+                const newTimestamp = Date.now();
+                const dataToSave = {
+                    namaRT, labelKas, bulanHeader, saldoLalu,
+                    tarifIuran, mulaiTagihanBulan, mulaiTagihanTahun,
+                    lastUpdated: newTimestamp,
+                    masterWarga, masterPos, transaksi
+                };
+
                 const response = await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -703,6 +840,8 @@
                 const resData = await response.json();
 
                 if (resData.status === 'success') {
+                    lastCloudTimestamp = newTimestamp;
+                    localStorage.setItem('rt005_last_updated', lastCloudTimestamp);
                     setSyncBadge('success', 'Tersimpan di Google Sheets');
                 } else {
                     setSyncBadge('error', 'Ditolak Server (Cek Password)');
@@ -722,6 +861,10 @@
             localStorage.setItem('rt005_nama_rt', namaRT);
             localStorage.setItem('rt005_label_kas', labelKas);
             localStorage.setItem('rt005_bulan_header', bulanHeader);
+            localStorage.setItem('rt005_tarif_iuran', tarifIuran);
+            localStorage.setItem('rt005_mulai_bulan', mulaiTagihanBulan);
+            localStorage.setItem('rt005_mulai_tahun', mulaiTagihanTahun);
+            localStorage.setItem('rt005_last_updated', lastCloudTimestamp);
         }
 
         // VERIFIKASI PASSWORD LANGSUNG DI SERVER GOOGLE APPS SCRIPT
@@ -811,7 +954,8 @@
             const pembayar = trx.subjek ? trx.subjek : 'Warga / Donatur Umum';
             document.getElementById('kuitansiNamaWarga').innerText = pembayar;
 
-            const periodeInfo = (trx.bulan && trx.tahun) ? ` (${trx.bulan} ${trx.tahun})` : '';
+            const blnArr = getTransaksiBulanList(trx);
+            const periodeInfo = (blnArr.length > 0 && trx.tahun) ? ` (${blnArr.join(', ')} ${trx.tahun})` : '';
             document.getElementById('kuitansiKeterangan').innerText = `${trx.ket}${periodeInfo}`;
             document.getElementById('kuitansiPos').innerText = trx.pos || 'Kas Umum';
             document.getElementById('kuitansiNominal').innerText = `Rp ${trx.jumlah.toLocaleString('id-ID')}`;
@@ -869,9 +1013,11 @@
         function renderPosKeuanganOptions() {
             const selMasuk = document.getElementById('posMasuk');
             const selKeluar = document.getElementById('posKeluar');
+            const selEditPos = document.getElementById('editPos');
             const optsHtml = masterPos.map(p => `<option value="${p}">${p}</option>`).join('');
             selMasuk.innerHTML = optsHtml;
             selKeluar.innerHTML = optsHtml;
+            if (selEditPos) selEditPos.innerHTML = optsHtml;
 
             const selFilter = document.getElementById('filterPosLaporan');
             selFilter.innerHTML = `<option value="ALL">Semua Pos Kas</option>` + masterPos.map(p => `<option value="${p}">${p}</option>`).join('');
@@ -908,25 +1054,55 @@
         }
 
         function renderYearOptions() {
-            // Rentang otomatis: 2 tahun ke belakang s.d. 2 tahun ke depan
             const years = [];
             for (let y = CURRENT_YEAR - 2; y <= CURRENT_YEAR + 2; y++) {
                 years.push(y);
             }
             
             const selMatriks = document.getElementById('filterTahunMatriks');
+            const prevMatriks = selMatriks.value;
             selMatriks.innerHTML = years.map(y => `<option value="${y}" ${y === CURRENT_YEAR ? 'selected' : ''}>${y}</option>`).join('');
+            if (prevMatriks && years.includes(parseInt(prevMatriks))) selMatriks.value = prevMatriks;
 
             const selTunggakan = document.getElementById('filterTahunTunggakan');
+            const prevTunggakan = selTunggakan.value;
             selTunggakan.innerHTML = years.map(y => `<option value="${y}" ${y === CURRENT_YEAR ? 'selected' : ''}>${y}</option>`).join('');
+            if (prevTunggakan && years.includes(parseInt(prevTunggakan))) selTunggakan.value = prevTunggakan;
 
             const selInputThn = document.getElementById('tahunMasuk');
             selInputThn.innerHTML = years.map(y => `<option value="${y}" ${y === CURRENT_YEAR ? 'selected' : ''}>${y}</option>`).join('');
+
+            const selEditThn = document.getElementById('editTahun');
+            if (selEditThn) selEditThn.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+        }
+
+        function renderPengaturanMulaiTagihan() {
+            const selBln = document.getElementById('selectMulaiBulan');
+            const selThn = document.getElementById('selectMulaiTahun');
+            if (!selBln || !selThn) return;
+
+            selBln.innerHTML = BULAN_LIST.map((b, idx) => `<option value="${idx}" ${idx === mulaiTagihanBulan ? 'selected' : ''}>${b}</option>`).join('');
+            
+            const years = [];
+            for (let y = CURRENT_YEAR - 2; y <= CURRENT_YEAR + 2; y++) years.push(y);
+            selThn.innerHTML = years.map(y => `<option value="${y}" ${y === mulaiTagihanTahun ? 'selected' : ''}>${y}</option>`).join('');
+        }
+
+        function updatePengaturanIuran() {
+            const valTarif = parseFloat(document.getElementById('inputTarifIuran').value);
+            tarifIuran = (!isNaN(valTarif) && valTarif >= 0) ? valTarif : 50000;
+            mulaiTagihanBulan = parseInt(document.getElementById('selectMulaiBulan').value);
+            mulaiTagihanTahun = parseInt(document.getElementById('selectMulaiTahun').value);
+
+            renderTunggakan();
+            simpanSemuaData();
         }
 
         function renderFilterBulanTunggakan() {
             const sel = document.getElementById('filterBulanTunggakan');
+            const prev = sel.value;
             sel.innerHTML = BULAN_LIST.map((b, idx) => `<option value="${idx}" ${idx === CURRENT_MONTH_IDX ? 'selected' : ''}>${b}</option>`).join('');
+            if (prev !== '') sel.value = prev;
         }
 
         function renderSelectHeaderBulan() {
@@ -950,11 +1126,102 @@
 
         function renderSelects() {
             const selWarga = document.getElementById('selectWargaMasuk');
-            selWarga.innerHTML = '<option value="">-- Umum / Tanpa Warga --</option>' + 
+            selWarga.innerHTML = '<option value="">-- Umum / Pemasukan Non-Iuran --</option>' + 
                 masterWarga.map(w => `<option value="${w.nama} (${w.blok})">${w.blok} - ${w.nama}</option>`).join('');
 
-            const selBulan = document.getElementById('bulanMasuk');
-            selBulan.innerHTML = BULAN_LIST.map((b, idx) => `<option value="${b}" ${idx === CURRENT_MONTH_IDX ? 'selected' : ''}>${b}</option>`).join('');
+            const selEditWarga = document.getElementById('editWarga');
+            if (selEditWarga) {
+                selEditWarga.innerHTML = '<option value="">-- Umum / Pemasukan Non-Iuran --</option>' + 
+                    masterWarga.map(w => `<option value="${w.nama} (${w.blok})">${w.blok} - ${w.nama}</option>`).join('');
+            }
+        }
+
+        // Ekstrak prefix blok/gang otomatis (misal "S11/01" -> "S11", "A-01" -> "A") untuk filter cepat
+        function extractBlokGroup(blokStr) {
+            if (!blokStr) return '';
+            const match = blokStr.trim().toUpperCase().match(/^([A-Z0-9]+?)(?:[\/\-]|$)/);
+            return match ? match[1] : blokStr.trim().toUpperCase();
+        }
+
+        function renderBlokFilterOptions() {
+            const groups = [...new Set(masterWarga.map(w => extractBlokGroup(w.blok)).filter(Boolean))].sort();
+            const optsHtml = `<option value="ALL">Semua Blok / Gang</option>` + groups.map(g => `<option value="${g}">Blok ${g}</option>`).join('');
+            
+            const selT = document.getElementById('filterBlokTunggakan');
+            const selM = document.getElementById('filterBlokMatriks');
+            if (selT) {
+                const prev = selT.value;
+                selT.innerHTML = optsHtml;
+                if (prev && (prev === 'ALL' || groups.includes(prev))) selT.value = prev;
+            }
+            if (selM) {
+                const prev = selM.value;
+                selM.innerHTML = optsHtml;
+                if (prev && (prev === 'ALL' || groups.includes(prev))) selM.value = prev;
+            }
+        }
+
+        // FORM INPUT MULTI-BULAN (RAPEL) & OTOMATISASI NOMINAL
+        function renderCheckboxBulanMasuk() {
+            const grid = document.getElementById('checkboxBulanGrid');
+            if (!grid) return;
+            grid.innerHTML = BULAN_LIST.map((b, idx) => `
+                <label id="lblBlnMasuk_${idx}" class="flex items-center gap-1.5 bg-white border border-slate-300 rounded px-2 py-1 cursor-pointer hover:bg-emerald-100 transition select-none">
+                    <input type="checkbox" name="cbBulanMasuk" value="${b}" onchange="hitungOtomatisRapel()" class="accent-emerald-600 rounded">
+                    <span class="font-medium">${BULAN_SHORT_LIST[idx]}</span>
+                </label>
+            `).join('');
+        }
+
+        function onWargaMasukChange() {
+            const warga = document.getElementById('selectWargaMasuk').value;
+            const area = document.getElementById('areaCeklisIuran');
+            if (warga) {
+                area.classList.remove('hidden');
+                updateStatusBulanMasuk();
+            } else {
+                area.classList.add('hidden');
+                document.querySelectorAll('input[name="cbBulanMasuk"]').forEach(cb => cb.checked = false);
+            }
+        }
+
+        function updateStatusBulanMasuk() {
+            const warga = document.getElementById('selectWargaMasuk').value;
+            const thn = document.getElementById('tahunMasuk').value;
+            if (!warga) return;
+
+            const lunasBulan = [];
+            BULAN_LIST.forEach((b, idx) => {
+                const isLunas = transaksi.some(t => t.tipe === 'IN' && t.subjek === warga && t.tahun == thn && getTransaksiBulanList(t).includes(b));
+                const lbl = document.getElementById(`lblBlnMasuk_${idx}`);
+                const cb = lbl.querySelector('input');
+                if (isLunas) {
+                    lunasBulan.push(BULAN_SHORT_LIST[idx]);
+                    lbl.className = "flex items-center gap-1.5 bg-emerald-100 border border-emerald-400 text-emerald-800 rounded px-2 py-1 cursor-pointer select-none";
+                    lbl.title = "Bulan ini sudah lunas";
+                } else {
+                    lbl.className = "flex items-center gap-1.5 bg-white border border-slate-300 rounded px-2 py-1 cursor-pointer hover:bg-emerald-100 transition select-none";
+                    lbl.title = "";
+                }
+            });
+
+            const infoEl = document.getElementById('infoStatusLunasWarga');
+            infoEl.innerText = lunasBulan.length > 0
+                ? `Sudah lunas di ${thn}: ${lunasBulan.join(', ')} (kotak hijau).`
+                : `Belum ada pembayaran tercatat untuk tahun ${thn}.`;
+        }
+
+        function hitungOtomatisRapel() {
+            const checked = Array.from(document.querySelectorAll('input[name="cbBulanMasuk"]:checked')).map(cb => cb.value);
+            const ketInput = document.getElementById('ketMasuk');
+            const jmlInput = document.getElementById('jumlahMasuk');
+
+            if (checked.length > 0) {
+                ketInput.value = checked.length === 1
+                    ? `Iuran Bulan ${checked[0]}`
+                    : `Iuran Rapel (${checked.join(', ')})`;
+                jmlInput.value = checked.length * tarifIuran;
+            }
         }
 
         function updateInfoLaporan() {
@@ -971,10 +1238,9 @@
             simpanSemuaData();
         }
 
-        // Helper untuk mendapatkan kode bulan-tahun dari tanggal transaksi (misal "2027-01-13" -> "Jan-27")
         function getKodeBulanTahun(tglStr) {
             if (!tglStr) return '';
-            const parts = tglStr.split('-'); // [YYYY, MM, DD]
+            const parts = tglStr.split('-');
             if (parts.length < 2) return '';
             const thnShort = parts[0].slice(-2);
             const blnIdx = parseInt(parts[1], 10) - 1;
@@ -982,33 +1248,68 @@
             return `${BULAN_SHORT_LIST[blnIdx]}-${thnShort}`;
         }
 
+        // CEK TUNGGAKAN WARGA (MEMPERHITUNGKAN MULAI TAGIHAN, BULAN AKTIF DIINPUT, TARIF DINAMIS & FILTER)
         function renderTunggakan() {
             const tbody = document.getElementById('tabelTunggakanBody');
             tbody.innerHTML = '';
 
             const bulanLimitIdx = parseInt(document.getElementById('filterBulanTunggakan').value);
-            const thn = document.getElementById('filterTahunTunggakan').value;
+            const thn = parseInt(document.getElementById('filterTahunTunggakan').value);
+            const searchQuery = (document.getElementById('searchTunggakanInput')?.value || '').toLowerCase();
+            const filterBlok = document.getElementById('filterBlokTunggakan')?.value || 'ALL';
+
+            document.getElementById('labelTarifTunggakan').innerText = `Estimasi Total Tunggakan (Rp ${tarifIuran.toLocaleString('id-ID')}/bln)`;
+
+            // Jika tahun terpilih lebih kecil dari tahun mulai berlaku tagihan
+            if (thn < mulaiTagihanTahun) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500 font-semibold bg-slate-50">Tagihan iuran baru mulai berlaku pada ${BULAN_LIST[mulaiTagihanBulan]} ${mulaiTagihanTahun}.</td></tr>`;
+                document.getElementById('sumWargaNunggak').innerText = `0 Warga`;
+                document.getElementById('sumNominalTunggakan').innerText = `Rp 0`;
+                return;
+            }
+
+            const startMonthIdx = (thn === mulaiTagihanTahun) ? mulaiTagihanBulan : 0;
+
+            // Cari bulan-bulan mulai startMonthIdx s.d. bulanLimitIdx yang SUDAH ada minimal 1 pembayaran warga diinput
+            const bulanAktifDiinput = [];
+            for (let i = startMonthIdx; i <= bulanLimitIdx; i++) {
+                const namaBulan = BULAN_LIST[i];
+                const sudahAdaInput = transaksi.some(t => t.tipe === 'IN' && t.subjek && t.tahun == thn && getTransaksiBulanList(t).includes(namaBulan));
+                if (sudahAdaInput) {
+                    bulanAktifDiinput.push(namaBulan);
+                }
+            }
+
+            if (bulanAktifDiinput.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500 font-semibold bg-slate-50">Belum ada data pembayaran iuran aktif yang diinput s.d. ${BULAN_LIST[bulanLimitIdx]} ${thn}.</td></tr>`;
+                document.getElementById('sumWargaNunggak').innerText = `0 Warga`;
+                document.getElementById('sumNominalTunggakan').innerText = `Rp 0`;
+                return;
+            }
 
             let totalWargaNunggak = 0;
             let totalBulanNunggakGlobal = 0;
 
             masterWarga.forEach(w => {
+                const matchSearch = w.blok.toLowerCase().includes(searchQuery) || w.nama.toLowerCase().includes(searchQuery);
+                const matchBlok = filterBlok === 'ALL' || extractBlokGroup(w.blok) === filterBlok;
+                if (!matchSearch || !matchBlok) return;
+
                 const subjekKey = `${w.nama} (${w.blok})`;
                 let bulanNunggak = [];
 
-                for(let i = 0; i <= bulanLimitIdx; i++) {
-                    const namaBulan = BULAN_LIST[i];
-                    const isLunas = transaksi.some(t => t.subjek === subjekKey && t.bulan === namaBulan && t.tahun == thn && t.tipe === 'IN');
-                    if(!isLunas) {
+                bulanAktifDiinput.forEach(namaBulan => {
+                    const isLunas = transaksi.some(t => t.subjek === subjekKey && t.tahun == thn && t.tipe === 'IN' && getTransaksiBulanList(t).includes(namaBulan));
+                    if (!isLunas) {
                         bulanNunggak.push(namaBulan);
                     }
-                }
+                });
 
-                if(bulanNunggak.length > 0) {
+                if (bulanNunggak.length > 0) {
                     totalWargaNunggak++;
                     totalBulanNunggakGlobal += bulanNunggak.length;
 
-                    const pesanWA = encodeURIComponent(`Halo ${w.nama} (${w.blok}), menginformasikan rekap iuran ${namaRT} s.d. bulan ${BULAN_LIST[bulanLimitIdx]} ${thn} masih ada tunggakan untuk bulan: (${bulanNunggak.join(', ')}). Terima kasih.`);
+                    const pesanWA = encodeURIComponent(`Halo ${w.nama} (${w.blok}), menginformasikan rekap iuran ${namaRT} s.d. bulan ${BULAN_LIST[bulanLimitIdx]} ${thn} masih ada tunggakan untuk bulan: (${bulanNunggak.join(', ')}) sebesar Rp ${(bulanNunggak.length * tarifIuran).toLocaleString('id-ID')}. Terima kasih.`);
 
                     const tr = document.createElement('tr');
                     tr.className = "border-b border-slate-300 hover:bg-rose-50/50";
@@ -1034,17 +1335,18 @@
                 }
             });
 
-            if(totalWargaNunggak === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-emerald-600 font-bold bg-emerald-50">Luar biasa! Semua warga telah melunasi iuran s.d. bulan terpilih.</td></tr>`;
+            if (totalWargaNunggak === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-emerald-600 font-bold bg-emerald-50">Tidak ada tunggakan pada filter yang dipilih.</td></tr>`;
             }
 
             document.getElementById('sumWargaNunggak').innerText = `${totalWargaNunggak} Warga`;
-            document.getElementById('sumNominalTunggakan').innerText = `Rp ${(totalBulanNunggakGlobal * 50000).toLocaleString('id-ID')} *`;
+            document.getElementById('sumNominalTunggakan').innerText = `Rp ${(totalBulanNunggakGlobal * tarifIuran).toLocaleString('id-ID')}`;
         }
 
         function bayarCepat(subjekWarga) {
             switchTab('transaksi');
             document.getElementById('selectWargaMasuk').value = subjekWarga;
+            onWargaMasukChange();
         }
 
         function simpanTransaksi(e, tipe) {
@@ -1055,13 +1357,47 @@
                 const pos = document.getElementById('posMasuk').value;
                 const ket = document.getElementById('ketMasuk').value;
                 const subjek = document.getElementById('selectWargaMasuk').value;
-                const bulan = document.getElementById('bulanMasuk').value;
-                const tahun = document.getElementById('tahunMasuk').value;
+                const tahun = subjek ? document.getElementById('tahunMasuk').value : '';
+                const checkedBulan = subjek
+                    ? Array.from(document.querySelectorAll('input[name="cbBulanMasuk"]:checked')).map(cb => cb.value)
+                    : [];
                 const jumlah = parseFloat(document.getElementById('jumlahMasuk').value) || 0;
 
-                transaksi.push({ id: newId, tgl, pos, tipe: 'IN', ket, subjek, bulan, tahun, jumlah });
+                if (subjek && checkedBulan.length === 0) {
+                    alert("Silakan centang minimal 1 bulan iuran untuk warga yang dipilih!");
+                    return;
+                }
+
+                // Cek duplikasi pembayaran warga pada bulan & tahun terpilih
+                if (subjek && checkedBulan.length > 0) {
+                    const duplikat = checkedBulan.filter(b =>
+                        transaksi.some(t => t.tipe === 'IN' && t.subjek === subjek && t.tahun == tahun && getTransaksiBulanList(t).includes(b))
+                    );
+                    if (duplikat.length > 0) {
+                        const lanjut = confirm(
+                            `PERINGATAN DUPLIKASI:\nWarga ${subjek} sudah tercatat LUNAS untuk bulan: ${duplikat.join(', ')} (${tahun}).\n\nApakah Anda yakin tetap ingin menyimpan transaksi ganda ini?`
+                        );
+                        if (!lanjut) return;
+                    }
+                }
+
+                transaksi.push({
+                    id: newId,
+                    tgl,
+                    pos,
+                    tipe: 'IN',
+                    ket,
+                    subjek,
+                    bulan: checkedBulan.length > 0 ? checkedBulan[0] : '',
+                    bulanList: checkedBulan,
+                    tahun,
+                    jumlah
+                });
+
                 document.getElementById('ketMasuk').value = '';
                 document.getElementById('jumlahMasuk').value = '';
+                document.getElementById('selectWargaMasuk').value = '';
+                onWargaMasukChange();
 
                 const kodeBlnTrx = getKodeBulanTahun(tgl);
                 if (BULAN_SHORT_OPTIONS.includes(kodeBlnTrx)) {
@@ -1077,7 +1413,7 @@
                 const ket = document.getElementById('ketKeluar').value;
                 const jumlah = parseFloat(document.getElementById('jumlahKeluar').value) || 0;
 
-                transaksi.push({ id: newId, tgl, pos, tipe: 'OUT', ket, subjek: '', bulan: '', tahun: '', jumlah });
+                transaksi.push({ id: newId, tgl, pos, tipe: 'OUT', ket, subjek: '', bulan: '', bulanList: [], tahun: '', jumlah });
                 document.getElementById('ketKeluar').value = '';
                 document.getElementById('jumlahKeluar').value = '';
 
@@ -1090,6 +1426,83 @@
                 alert('Transaksi Keluar Berhasil Disimpan!');
                 switchTab('laporan');
             }
+        }
+
+        // FITUR EDIT TRANSAKSI
+        function bukaModalEdit(idTransaksi) {
+            const trx = transaksi.find(t => t.id === idTransaksi);
+            if (!trx) return;
+
+            document.getElementById('editTrxId').value = trx.id;
+            document.getElementById('editTgl').value = trx.tgl;
+            document.getElementById('editPos').value = trx.pos || masterPos[0];
+            document.getElementById('editKet').value = trx.ket;
+            document.getElementById('editJumlah').value = trx.jumlah;
+
+            const areaWarga = document.getElementById('editAreaWarga');
+            const areaBlnThn = document.getElementById('editAreaBulanTahun');
+
+            if (trx.tipe === 'IN') {
+                areaWarga.classList.remove('hidden');
+                areaBlnThn.classList.remove('hidden');
+                document.getElementById('editWarga').value = trx.subjek || '';
+                document.getElementById('editTahun').value = trx.tahun || CURRENT_YEAR;
+
+                const selectedBln = getTransaksiBulanList(trx);
+                const grid = document.getElementById('editCheckboxBulanGrid');
+                grid.innerHTML = BULAN_LIST.map((b, idx) => `
+                    <label class="flex items-center gap-1 bg-white border rounded px-1.5 py-1 cursor-pointer">
+                        <input type="checkbox" name="cbEditBulan" value="${b}" ${selectedBln.includes(b) ? 'checked' : ''} class="accent-emerald-600">
+                        <span>${BULAN_SHORT_LIST[idx]}</span>
+                    </label>
+                `).join('');
+            } else {
+                areaWarga.classList.add('hidden');
+                areaBlnThn.classList.add('hidden');
+            }
+
+            document.getElementById('modalEditTransaksi').classList.remove('hidden');
+        }
+
+        function tutupModalEdit() {
+            document.getElementById('modalEditTransaksi').classList.add('hidden');
+        }
+
+        function simpanEditTransaksi(e) {
+            e.preventDefault();
+            const id = parseInt(document.getElementById('editTrxId').value);
+            const idx = transaksi.findIndex(t => t.id === id);
+            if (idx === -1) return;
+
+            const trx = transaksi[idx];
+            trx.tgl = document.getElementById('editTgl').value;
+            trx.pos = document.getElementById('editPos').value;
+            trx.ket = document.getElementById('editKet').value;
+            trx.jumlah = parseFloat(document.getElementById('editJumlah').value) || 0;
+
+            if (trx.tipe === 'IN') {
+                const subjek = document.getElementById('editWarga').value;
+                trx.subjek = subjek;
+                if (subjek) {
+                    const checkedBln = Array.from(document.querySelectorAll('input[name="cbEditBulan"]:checked')).map(cb => cb.value);
+                    if (checkedBln.length === 0) {
+                        alert("Pilih minimal 1 bulan iuran untuk warga tersebut.");
+                        return;
+                    }
+                    trx.tahun = document.getElementById('editTahun').value;
+                    trx.bulanList = checkedBln;
+                    trx.bulan = checkedBln[0];
+                } else {
+                    trx.tahun = '';
+                    trx.bulanList = [];
+                    trx.bulan = '';
+                }
+            }
+
+            tutupModalEdit();
+            renderAllViews();
+            simpanSemuaData();
+            alert('Perubahan transaksi berhasil disimpan!');
         }
 
         function formatTanggalIndo(tglStr) {
@@ -1114,7 +1527,6 @@
             let mutasiSebelumBulanIni = 0;
             let jumlahBarisTampil = 0;
 
-            // Tentukan batas awal tanggal jika filter bulan spesifik dipilih (misal "Jan-27" -> "2027-01-01")
             let batasAwalPeriode = null;
             if (filterBulan && filterBulan !== 'ALL' && filterBulan.includes('-')) {
                 const [blnShort, thnShort] = filterBulan.split('-');
@@ -1133,7 +1545,6 @@
                 const matchBulan = filterBulan === 'ALL' || kodeBlnTrx === filterBulan;
                 const matchSearch = t.ket.toLowerCase().includes(searchQuery) || (t.subjek && t.subjek.toLowerCase().includes(searchQuery));
 
-                // Hitung saldo berjalan dari bulan-bulan & tahun-tahun sebelumnya secara otomatis
                 if (batasAwalPeriode && t.tgl < batasAwalPeriode && matchPos) {
                     if (t.tipe === 'IN') mutasiSebelumBulanIni += t.jumlah;
                     else mutasiSebelumBulanIni -= t.jumlah;
@@ -1159,6 +1570,7 @@
                         <td class="p-2 border border-slate-300 text-center no-print">
                             <div class="flex items-center justify-center gap-1.5">
                                 ${isMasuk ? `<button onclick="bukaKuitansi(${t.id})" title="Lihat Kuitansi" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1"><i class="fa-solid fa-receipt"></i> Kuitansi</button>` : ''}
+                                <button onclick="bukaModalEdit(${t.id})" title="Edit Transaksi" class="text-blue-600 hover:text-blue-800 admin-only"><i class="fa-solid fa-pen-to-square"></i></button>
                                 <button onclick="hapusTransaksi(${t.id})" title="Hapus" class="text-rose-600 hover:text-rose-800 admin-only"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </td>
@@ -1200,7 +1612,7 @@
         function hapusTransaksi(id) {
             if(confirm('Hapus transaksi ini?')) {
                 transaksi = transaksi.filter(t => t.id !== id);
-                renderLaporanTable();
+                renderAllViews();
                 simpanSemuaData();
             }
         }
@@ -1209,8 +1621,14 @@
             const tbody = document.getElementById('bodyMatriks');
             tbody.innerHTML = '';
             const thn = document.getElementById('filterTahunMatriks').value;
+            const searchQuery = (document.getElementById('searchMatriksInput')?.value || '').toLowerCase();
+            const filterBlok = document.getElementById('filterBlokMatriks')?.value || 'ALL';
 
             masterWarga.forEach(w => {
+                const matchSearch = w.blok.toLowerCase().includes(searchQuery) || w.nama.toLowerCase().includes(searchQuery);
+                const matchBlok = filterBlok === 'ALL' || extractBlokGroup(w.blok) === filterBlok;
+                if (!matchSearch || !matchBlok) return;
+
                 const subjekKey = `${w.nama} (${w.blok})`;
                 const tr = document.createElement('tr');
                 tr.className = "border-b hover:bg-slate-50";
@@ -1218,7 +1636,7 @@
                 let tds = `<td class="p-2 border border-slate-300 text-left font-bold">${w.blok} - ${w.nama}</td>`;
 
                 BULAN_LIST.forEach(b => {
-                    const isLunas = transaksi.some(t => t.subjek === subjekKey && t.bulan === b && t.tahun == thn && t.tipe === 'IN');
+                    const isLunas = transaksi.some(t => t.subjek === subjekKey && t.tahun == thn && t.tipe === 'IN' && getTransaksiBulanList(t).includes(b));
                     tds += `<td class="p-1 border border-slate-300 ${isLunas ? 'bg-emerald-100 text-emerald-800 font-bold' : 'text-slate-300'}">
                         ${isLunas ? '✓' : '-'}
                     </td>`;
@@ -1231,6 +1649,7 @@
 
         function renderTabelWarga() {
             const tbody = document.getElementById('tabelWarga');
+            document.getElementById('jumlahTotalWarga').innerText = masterWarga.length;
             tbody.innerHTML = masterWarga.map((w, idx) => `
                 <tr class="border-b hover:bg-slate-50">
                     <td class="p-2 font-bold">${w.blok}</td>
@@ -1244,13 +1663,12 @@
 
         function tambahWarga(e) {
             e.preventDefault();
-            const blok = document.getElementById('inputBlok').value;
-            const nama = document.getElementById('inputNama').value;
+            const blok = document.getElementById('inputBlok').value.trim();
+            const nama = document.getElementById('inputNama').value.trim();
             masterWarga.push({ blok, nama });
             document.getElementById('inputBlok').value = '';
             document.getElementById('inputNama').value = '';
-            renderTabelWarga();
-            renderSelects();
+            renderAllViews();
             simpanSemuaData();
         }
 
@@ -1269,8 +1687,13 @@
 
                     let count = 0;
                     json.forEach(row => {
-                        const blokVal = row.Blok || row.blok || row.BLOK || row['No Rumah'] || row['Blok / Rumah'];
-                        const namaVal = row.Nama || row.nama || row.NAMA || row['Nama Warga'] || row['Nama Kepala Keluarga'];
+                        const normalizedRow = {};
+                        Object.keys(row).forEach(k => {
+                            normalizedRow[k.trim().toLowerCase()] = row[k];
+                        });
+
+                        const blokVal = normalizedRow['blok'] || normalizedRow['no rumah'] || normalizedRow['blok / rumah'];
+                        const namaVal = normalizedRow['nama'] || normalizedRow['nama warga'] || normalizedRow['nama kepala keluarga'];
 
                         if (blokVal && namaVal) {
                             masterWarga.push({ blok: String(blokVal).trim(), nama: String(namaVal).trim() });
@@ -1280,8 +1703,7 @@
 
                     if (count > 0) {
                         alert(`Berhasil menambahkan ${count} data warga dari Excel!`);
-                        renderTabelWarga();
-                        renderSelects();
+                        renderAllViews();
                         simpanSemuaData();
                     } else {
                         alert("Gagal membaca data. Pastikan nama header di Excel adalah 'Blok' dan 'Nama'.");
@@ -1296,8 +1718,7 @@
         function kosongkanDataWarga() {
             if(confirm('Kosongkan seluruh daftar warga? (Data transaksi tidak akan terhapus)')) {
                 masterWarga = [];
-                renderTabelWarga();
-                renderSelects();
+                renderAllViews();
                 simpanSemuaData();
             }
         }
@@ -1305,15 +1726,96 @@
         function hapusWarga(idx) {
             if(confirm('Hapus warga ini?')) {
                 masterWarga.splice(idx, 1);
-                renderTabelWarga();
-                renderSelects();
+                renderAllViews();
                 simpanSemuaData();
             }
         }
 
+        // EXPORT EXCEL (.XLSX) UNTUK LAPORAN, TUNGGAKAN & MATRIKS
+        function exportLaporanExcel() {
+            const sorted = [...transaksi].sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
+            const rows = sorted.map((t, idx) => ({
+                'No': idx + 1,
+                'Tanggal': t.tgl,
+                'Pos Keuangan': t.pos || '-',
+                'Keterangan': t.ket,
+                'Warga': t.subjek || 'Umum',
+                'Bulan Iuran': getTransaksiBulanList(t).join(', ') || '-',
+                'Tahun': t.tahun || '-',
+                'Kas Masuk (Rp)': t.tipe === 'IN' ? t.jumlah : 0,
+                'Kas Keluar (Rp)': t.tipe === 'OUT' ? t.jumlah : 0
+            }));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Laporan Kas');
+            XLSX.writeFile(wb, `Laporan_Kas_${namaRT.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+
+        function exportTunggakanExcel() {
+            const bulanLimitIdx = parseInt(document.getElementById('filterBulanTunggakan').value);
+            const thn = parseInt(document.getElementById('filterTahunTunggakan').value);
+            const startMonthIdx = (thn === mulaiTagihanTahun) ? mulaiTagihanBulan : 0;
+
+            const bulanAktifDiinput = [];
+            for (let i = startMonthIdx; i <= bulanLimitIdx; i++) {
+                const namaBulan = BULAN_LIST[i];
+                if (transaksi.some(t => t.tipe === 'IN' && t.subjek && t.tahun == thn && getTransaksiBulanList(t).includes(namaBulan))) {
+                    bulanAktifDiinput.push(namaBulan);
+                }
+            }
+
+            const rows = [];
+            masterWarga.forEach(w => {
+                const subjekKey = `${w.nama} (${w.blok})`;
+                const bulanNunggak = bulanAktifDiinput.filter(namaBulan =>
+                    !transaksi.some(t => t.subjek === subjekKey && t.tahun == thn && t.tipe === 'IN' && getTransaksiBulanList(t).includes(namaBulan))
+                );
+                if (bulanNunggak.length > 0) {
+                    rows.push({
+                        'Blok / No Rumah': w.blok,
+                        'Nama Kepala Keluarga': w.nama,
+                        'Bulan Belum Dibayar': bulanNunggak.join(', '),
+                        'Jumlah Bulan': bulanNunggak.length,
+                        'Estimasi Tunggakan (Rp)': bulanNunggak.length * tarifIuran
+                    });
+                }
+            });
+
+            if (rows.length === 0) {
+                alert('Tidak ada data tunggakan untuk diexport pada periode ini.');
+                return;
+            }
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Tunggakan Warga');
+            XLSX.writeFile(wb, `Tunggakan_${namaRT.replace(/\s+/g, '_')}_${BULAN_LIST[bulanLimitIdx]}_${thn}.xlsx`);
+        }
+
+        function exportMatriksExcel() {
+            const thn = document.getElementById('filterTahunMatriks').value;
+            const rows = masterWarga.map(w => {
+                const subjekKey = `${w.nama} (${w.blok})`;
+                const rowObj = {
+                    'Blok / Rumah': w.blok,
+                    'Nama Warga': w.nama
+                };
+                BULAN_LIST.forEach(b => {
+                    const isLunas = transaksi.some(t => t.subjek === subjekKey && t.tahun == thn && t.tipe === 'IN' && getTransaksiBulanList(t).includes(b));
+                    rowObj[b] = isLunas ? 'LUNAS' : '-';
+                });
+                return rowObj;
+            });
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, `Matriks ${thn}`);
+            XLSX.writeFile(wb, `Matriks_Iuran_${namaRT.replace(/\s+/g, '_')}_${thn}.xlsx`);
+        }
+
         function exportJSON() {
             const backupData = {
-                namaRT, labelKas, bulanHeader, saldoLalu, masterWarga, masterPos, transaksi
+                namaRT, labelKas, bulanHeader, saldoLalu,
+                tarifIuran, mulaiTagihanBulan, mulaiTagihanTahun,
+                masterWarga, masterPos, transaksi
             };
             const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -1338,10 +1840,13 @@
                         if(data.namaRT) namaRT = data.namaRT;
                         if(data.labelKas) labelKas = data.labelKas;
                         if(data.bulanHeader) bulanHeader = data.bulanHeader;
+                        if(data.tarifIuran !== undefined) tarifIuran = parseFloat(data.tarifIuran) || 50000;
+                        if(data.mulaiTagihanBulan !== undefined) mulaiTagihanBulan = parseInt(data.mulaiTagihanBulan);
+                        if(data.mulaiTagihanTahun !== undefined) mulaiTagihanTahun = parseInt(data.mulaiTagihanTahun);
 
                         sinkronkanFormPengaturan();
                         renderAllViews();
-                        simpanSemuaData();
+                        simpanSemuaData(true);
                         alert('Data Berhasil Di-import dan Disinkronkan ke Google Sheets!');
                     } else {
                         alert('Format file backup tidak valid!');
@@ -1365,7 +1870,7 @@
                 transaksi = [];
                 saldoLalu = 0;
                 bulanHeader = 'AUTO';
-                await simpanSemuaData();
+                await simpanSemuaData(true);
                 location.reload();
             }
         }
