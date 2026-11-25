@@ -2325,19 +2325,19 @@
 
             // Kirim ke Google Sheets (tanpa butuh password pengurus karena ini antrean konfirmasi warga)
             if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== "TEMPEL_URL_DISINI") {
-                try {
-                    await fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({
-                            action: 'confirm_qris',
-                            item: itemKonfirmasi
-                        })
-                    });
-                } catch (err) {
-                    console.error('Gagal kirim antrean ke cloud:', err);
-                }
+                const res = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'confirm_qris',
+                        item: itemKonfirmasi
+                    })
+            });
+            const resData = await res.json();
+            if (resData.status !== 'success') {
+            throw new Error(resData.message || 'Server menolak konfirmasi QRIS');
             }
+        }
 
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Konfirmasi ke Kas RT';
