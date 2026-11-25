@@ -67,6 +67,9 @@
                     </div>
                 </div>
                 <div class="flex gap-2 text-xs flex-wrap items-center">
+                    <button onclick="bukaModalQRIS()" class="bg-teal-400 hover:bg-teal-300 text-emerald-950 font-extrabold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow transition">
+                        <i class="fa-solid fa-qrcode"></i> Bayar via QRIS
+                    </button>
                     <button onclick="muatDataDariCloud(true)" title="Segarkan Data dari Google Sheets" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg border border-emerald-500 font-semibold transition flex items-center gap-1 shadow">
                         <i class="fa-solid fa-arrows-rotate" id="iconRefreshCloud"></i> <span class="hidden sm:inline">Refresh</span>
                     </button>
@@ -101,6 +104,9 @@
                 </button>
                 <button onclick="switchTab('tunggakan')" id="tab-tunggakan" class="tab-btn py-3 flex items-center gap-2 whitespace-nowrap text-rose-600 font-bold">
                     <i class="fa-solid fa-circle-exclamation text-rose-600"></i> Cek Tunggakan Warga
+                </button>
+                <button onclick="switchTab('verifikasi')" id="tab-verifikasi" class="tab-btn py-3 flex items-center gap-2 whitespace-nowrap admin-only text-teal-700 font-bold">
+                    <i class="fa-solid fa-qrcode text-teal-600"></i> Verifikasi QRIS <span id="badgePendingQRIS" class="hidden bg-rose-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">0</span>
                 </button>
                 <button onclick="switchTab('transaksi')" id="tab-transaksi" class="tab-btn py-3 flex items-center gap-2 whitespace-nowrap admin-only">
                     <i class="fa-solid fa-pen-to-square"></i> Input Transaksi
@@ -251,6 +257,22 @@
                         </select>
                     </div>
 
+                    <!-- Banner Ajakan Bayar QRIS untuk Warga -->
+                    <div class="no-print bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-300 rounded-xl p-3.5 mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div class="flex items-start gap-2.5">
+                            <div class="bg-teal-600 text-white p-2 rounded-lg text-base shrink-0 mt-0.5">
+                                <i class="fa-solid fa-qrcode"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-teal-950 text-xs sm:text-sm">Bayar Iuran Lebih Mudah via QRIS RT 005</div>
+                                <p class="text-[11px] text-teal-800">Scan QRIS Bendahara dari semua e-Wallet & Mobile Banking, lalu kirim konfirmasi langsung di sini.</p>
+                            </div>
+                        </div>
+                        <button onclick="bukaModalQRIS()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow shrink-0 transition">
+                            <i class="fa-solid fa-qrcode"></i> Bayar & Konfirmasi QRIS
+                        </button>
+                    </div>
+
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5 no-print">
                         <div class="bg-rose-50 border border-rose-200 p-3.5 rounded-lg flex justify-between items-center">
                             <div>
@@ -280,6 +302,39 @@
                                 </tr>
                             </thead>
                             <tbody id="tabelTunggakanBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB VERIFIKASI QRIS WARGA (ADMIN ONLY) -->
+            <div id="page-verifikasi" class="tab-page hidden admin-only">
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-slate-200">
+                    <div class="flex justify-between items-center border-b pb-3 mb-4 flex-wrap gap-2">
+                        <div>
+                            <h2 class="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-clipboard-check text-teal-600"></i> Antrean Konfirmasi Pembayaran QRIS Warga
+                            </h2>
+                            <p class="text-xs text-slate-500">Periksa mutasi masuk di aplikasi QRIS Bendahara, lalu klik <strong>ACC / Lunas</strong> untuk otomatis memasukkan ke Kas & Matriks.</p>
+                        </div>
+                        <button onclick="muatDataDariCloud(true)" class="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-300 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1">
+                            <i class="fa-solid fa-arrows-rotate"></i> Cek Konfirmasi Baru
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs md:text-sm text-left border-collapse border border-slate-300">
+                            <thead>
+                                <tr class="bg-teal-800 text-white uppercase font-bold">
+                                    <th class="p-2.5 border border-teal-900">Waktu Konfirmasi</th>
+                                    <th class="p-2.5 border border-teal-900">Warga / Blok</th>
+                                    <th class="p-2.5 border border-teal-900">Bulan Iuran</th>
+                                    <th class="p-2.5 border border-teal-900 text-right">Nominal + Kode Unik</th>
+                                    <th class="p-2.5 border border-teal-900">Info Pengirim / Bukti</th>
+                                    <th class="p-2.5 border border-teal-900 text-center">Aksi Pengurus</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelPendingQRISBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -390,7 +445,7 @@
                         <table class="w-full text-xs text-center border-collapse border border-slate-300">
                             <thead>
                                 <tr class="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-300">
-                                    <th class="p-2 border border-slate-300 text-left">Rumah / Nama</th>
+                                    <th class="p-2 border border-slate-300 text-left">Nama / Rumah</th>
                                     <th class="p-1 border border-slate-300">Jan</th>
                                     <th class="p-1 border border-slate-300">Feb</th>
                                     <th class="p-1 border border-slate-300">Mar</th>
@@ -467,6 +522,27 @@
 
                         <div class="border-t pt-4">
                             <h2 class="font-bold text-slate-800 border-b pb-2 mb-3 flex items-center gap-1.5">
+                                <i class="fa-solid fa-qrcode text-teal-600"></i> Pengaturan Gambar QRIS RT
+                            </h2>
+                            <div class="space-y-2 text-xs">
+                                <p class="text-[11px] text-slate-500">Upload gambar QRIS resmi RT 005 (otomatis dikompres agar ringan tersimpan di Google Sheets) agar warga bisa langsung scan dari aplikasi.</p>
+                                <input type="file" id="uploadGambarQRISInput" accept="image/*" onchange="handleUploadGambarQRIS(event)" class="hidden">
+                                <button type="button" onclick="document.getElementById('uploadGambarQRISInput').click()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-1.5 px-2 rounded shadow transition flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-image"></i> Upload Foto/Gambar QRIS
+                                </button>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-600 uppercase mt-2 mb-0.5">Nama Merchant / Penerima QRIS:</label>
+                                    <input type="text" id="inputMerchantQRIS" onchange="updatePengaturanQRIS()" placeholder="Bendahara RT 05 MMR" class="w-full border rounded p-1.5 text-xs font-semibold">
+                                </div>
+                                <div id="previewAdminQRISBox" class="hidden pt-1 text-center">
+                                    <img id="previewAdminQRISImg" src="" alt="Preview QRIS" class="max-h-32 mx-auto border rounded p-1 bg-white">
+                                    <button type="button" onclick="hapusGambarQRIS()" class="text-[10px] text-rose-600 hover:underline mt-1">Hapus Gambar QRIS</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t pt-4">
+                            <h2 class="font-bold text-slate-800 border-b pb-2 mb-3 flex items-center gap-1.5">
                                 <i class="fa-solid fa-tags text-indigo-600"></i> Kelola Pos Keuangan
                             </h2>
                             <form onsubmit="tambahPosKeuangan(event)" class="space-y-2 mb-3">
@@ -505,6 +581,115 @@
             </div>
 
         </main>
+    </div>
+
+    <!-- MODAL BAYAR VIA QRIS & KONFIRMASI WARGA -->
+    <div id="modalBayarQRIS" class="fixed inset-0 bg-black/65 z-50 hidden flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-300 my-auto">
+            <div class="bg-gradient-to-r from-emerald-800 to-teal-700 text-white px-4 py-3 flex justify-between items-center">
+                <h3 class="font-bold text-sm sm:text-base flex items-center gap-2">
+                    <i class="fa-solid fa-qrcode text-yellow-300"></i> Pembayaran & Konfirmasi Iuran QRIS
+                </h3>
+                <button onclick="tutupModalQRIS()" class="text-emerald-100 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[85vh] overflow-y-auto text-xs">
+                <!-- KOLOM KIRI: KODE QRIS & NOMINAL UNIK -->
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex flex-col items-center text-center">
+                    <span class="bg-teal-100 text-teal-900 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-2">
+                        1. Scan QRIS Resmi RT
+                    </span>
+                    <div class="font-bold text-slate-800 text-sm mb-2" id="displayMerchantQRIS">Bendahara RT 05 MMR</div>
+
+                    <div id="containerGambarQRIS" class="w-full max-w-[230px] bg-white border-2 border-teal-600 rounded-xl p-2 shadow-sm mb-2.5">
+                        <img id="imgQRISWarga" src="" alt="QRIS RT 005" class="w-full h-auto rounded hidden">
+                        <div id="placeholderQRISBelumUpload" class="py-8 px-3 text-slate-500 text-[11px] space-y-2">
+                            <i class="fa-solid fa-qrcode text-4xl text-slate-300"></i>
+                            <p class="font-semibold text-slate-700">Gambar QRIS belum diunggah di pengaturan aplikasi.</p>
+                            <p class="text-[10px]">Silakan gunakan gambar QRIS resmi yang dibagikan di grup WhatsApp RT 005, lalu isi form konfirmasi di samping.</p>
+                        </div>
+                    </div>
+
+                    <button id="btnDownloadQRIS" onclick="downloadGambarQRIS()" class="hidden text-[11px] bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold px-3 py-1 rounded-lg mb-3 flex items-center gap-1 shadow-sm">
+                        <i class="fa-solid fa-download text-teal-600"></i> Simpan Gambar QRIS ke HP
+                    </button>
+
+                    <div class="w-full bg-amber-50 border border-amber-300 rounded-lg p-2.5 text-left space-y-1">
+                        <div class="text-[10px] font-bold text-amber-900 uppercase">Total Transfer (Termasuk Kode Unik Rumah):</div>
+                        <div class="text-lg font-extrabold text-emerald-800 font-mono" id="qrisTotalNominalDisplay">Rp 50.000</div>
+                        <p class="text-[10px] text-amber-800 leading-tight" id="qrisKodeUnikHint">
+                            Pilih Blok/Rumah & Bulan di samping untuk menghitung nominal tepat beserta kode unik identifikasi rumah.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- KOLOM KANAN: FORM KONFIRMASI PEMBAYARAN WARGA -->
+                <div>
+                    <span class="inline-block bg-emerald-100 text-emerald-900 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-2">
+                        2. Isi Konfirmasi Setelah Transfer
+                    </span>
+                    <form onsubmit="kirimKonfirmasiQRIS(event)" class="space-y-2.5">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Pilih Blok & Nama Warga *</label>
+                            <select id="qrisSelectWarga" onchange="onQRISWargaChange()" required class="w-full border border-slate-300 rounded-lg p-2 text-xs font-semibold focus:ring-2 focus:ring-teal-500 outline-none">
+                                <option value="">-- Pilih Blok / Nama Anda --</option>
+                            </select>
+                        </div>
+
+                        <div class="bg-teal-50/70 border border-teal-200 rounded-lg p-2.5">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="font-bold text-teal-950">Bulan Iuran Dibayar *</label>
+                                <select id="qrisTahun" onchange="updateStatusBulanQRIS()" class="border border-teal-300 rounded px-1.5 py-0.5 text-xs font-bold bg-white"></select>
+                            </div>
+                            <div id="qrisCheckboxBulanGrid" class="grid grid-cols-4 gap-1 text-[11px]"></div>
+                            <p id="qrisInfoLunas" class="text-[10px] text-teal-800 italic mt-1.5"></p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Tanggal Bayar *</label>
+                                <input type="date" id="qrisTglBayar" required class="w-full border border-slate-300 rounded-lg p-1.5 text-xs">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Nominal Ditransfer *</label>
+                                <input type="number" id="qrisNominalInput" oninput="updateDisplayNominalQRIS()" required class="w-full border border-slate-300 rounded-lg p-1.5 text-xs font-mono font-bold text-emerald-800">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Nama Akun e-Wallet / Pengirim (Opsional)</label>
+                            <input type="text" id="qrisNamaPengirim" placeholder="Contoh: DANA - Ahmad / BCA - Siti" class="w-full border border-slate-300 rounded-lg p-1.5 text-xs">
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Upload Screenshot Bukti QRIS (Opsional)</label>
+                            <input type="file" id="qrisBuktiFile" accept="image/*" onchange="previewBuktiWarga(event)" class="w-full text-[11px] border border-slate-300 rounded-lg p-1 bg-slate-50">
+                            <img id="qrisBuktiPreview" src="" alt="Preview Bukti" class="hidden max-h-24 mt-1.5 rounded border mx-auto">
+                        </div>
+
+                        <div class="pt-1 flex flex-col gap-1.5">
+                            <button type="submit" id="btnSubmitKonfirmasiQRIS" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-lg shadow transition flex items-center justify-center gap-1.5 text-xs">
+                                <i class="fa-solid fa-paper-plane"></i> Kirim Konfirmasi ke Kas RT
+                            </button>
+                            <button type="button" onclick="kirimKonfirmasiQRISKeWA()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg shadow transition flex items-center justify-center gap-1.5 text-[11px]">
+                                <i class="fa-brands fa-whatsapp"></i> Kirim Juga Bukti via WhatsApp Bendahara
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PREVIEW BUKTI SCREENSHOT QRIS -->
+    <div id="modalPreviewBukti" class="fixed inset-0 bg-black/75 z-50 hidden flex items-center justify-center p-4" onclick="this.classList.add('hidden')">
+        <div class="bg-white rounded-xl p-3 max-w-md w-full text-center space-y-2" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b pb-2">
+                <span class="font-bold text-xs text-slate-800">Bukti Pembayaran QRIS Warga</span>
+                <button onclick="document.getElementById('modalPreviewBukti').classList.add('hidden')" class="text-slate-500 hover:text-black"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <img id="imgFullBukti" src="" alt="Bukti Transfer" class="max-h-[70vh] mx-auto rounded border">
+        </div>
     </div>
 
     <!-- MODAL EDIT TRANSAKSI -->
@@ -676,6 +861,10 @@
         let masterWarga = JSON.parse(localStorage.getItem('rt005_warga')) || DEFAULT_WARGA;
         let masterPos = JSON.parse(localStorage.getItem('rt005_pos_keuangan')) || DEFAULT_POS;
         let transaksi = JSON.parse(localStorage.getItem('rt005_transaksi')) || [];
+        let pendingQRIS = JSON.parse(localStorage.getItem('rt005_pending_qris')) || [];
+        let qrisImageBase64 = localStorage.getItem('rt005_qris_image') || '';
+        let qrisMerchantName = localStorage.getItem('rt005_qris_merchant') || 'Bendahara RT 05 MMR';
+        let tempBuktiWargaBase64 = '';
         
         let savedSaldo = localStorage.getItem('rt005_saldo_lalu');
         let saldoLalu = (savedSaldo !== null && savedSaldo !== '') ? parseFloat(savedSaldo) : 0;
@@ -716,6 +905,10 @@
             document.getElementById('inputLabelKas').value = labelKas;
             document.getElementById('inputNamaRT').value = namaRT;
             document.getElementById('inputTarifIuran').value = tarifIuran;
+            if (document.getElementById('inputMerchantQRIS')) {
+                document.getElementById('inputMerchantQRIS').value = qrisMerchantName;
+            }
+            updateTampilanGambarQRIS();
         }
 
         function renderAllViews() {
@@ -730,6 +923,7 @@
             renderMatriks();
             renderFilterBulanTunggakan();
             renderTunggakan();
+            renderPendingQRISTable();
         }
 
         function setSyncBadge(status, text) {
@@ -768,6 +962,9 @@
                     if (data.masterWarga) masterWarga = data.masterWarga;
                     if (data.masterPos) masterPos = data.masterPos;
                     if (data.transaksi) transaksi = data.transaksi;
+                    if (data.pendingQRIS) pendingQRIS = data.pendingQRIS;
+                    if (data.qrisImageBase64 !== undefined) qrisImageBase64 = data.qrisImageBase64;
+                    if (data.qrisMerchantName) qrisMerchantName = data.qrisMerchantName;
                     if (data.saldoLalu !== undefined) saldoLalu = parseFloat(data.saldoLalu) || 0;
                     if (data.namaRT) namaRT = data.namaRT;
                     if (data.labelKas) labelKas = data.labelKas;
@@ -824,8 +1021,9 @@
                 const dataToSave = {
                     namaRT, labelKas, bulanHeader, saldoLalu,
                     tarifIuran, mulaiTagihanBulan, mulaiTagihanTahun,
+                    qrisImageBase64, qrisMerchantName,
                     lastUpdated: newTimestamp,
-                    masterWarga, masterPos, transaksi
+                    masterWarga, masterPos, transaksi, pendingQRIS
                 };
 
                 const response = await fetch(GOOGLE_SCRIPT_URL, {
@@ -857,6 +1055,9 @@
             localStorage.setItem('rt005_warga', JSON.stringify(masterWarga));
             localStorage.setItem('rt005_pos_keuangan', JSON.stringify(masterPos));
             localStorage.setItem('rt005_transaksi', JSON.stringify(transaksi));
+            localStorage.setItem('rt005_pending_qris', JSON.stringify(pendingQRIS));
+            localStorage.setItem('rt005_qris_image', qrisImageBase64);
+            localStorage.setItem('rt005_qris_merchant', qrisMerchantName);
             localStorage.setItem('rt005_saldo_lalu', saldoLalu);
             localStorage.setItem('rt005_nama_rt', namaRT);
             localStorage.setItem('rt005_label_kas', labelKas);
@@ -1322,6 +1523,9 @@
                         </td>
                         <td class="p-2.5 border border-slate-300 text-center no-print">
                             <div class="flex items-center justify-center gap-1">
+                                <button onclick="bukaModalQRIS('${subjekKey}')" class="bg-teal-600 hover:bg-teal-700 text-white px-2 py-1 rounded text-xs font-bold transition flex items-center gap-1" title="Bayar via QRIS">
+                                    <i class="fa-solid fa-qrcode"></i> QRIS
+                                </button>
                                 <button onclick="bayarCepat('${subjekKey}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded text-xs font-bold transition flex items-center gap-1 admin-only">
                                     <i class="fa-solid fa-hand-holding-dollar"></i> Bayarkan
                                 </button>
@@ -1874,6 +2078,381 @@
                 location.reload();
             }
         }
+
+        // =========================================================================
+        // FITUR PEMBAYARAN QRIS & FORM KONFIRMASI WARGA
+        // =========================================================================
+        function kompresGambarBase64(file, maxWidth, quality, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxWidth) {
+                        h = Math.round((h * maxWidth) / w);
+                        w = maxWidth;
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    callback(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleUploadGambarQRIS(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            kompresGambarBase64(file, 450, 0.85, (base64Str) => {
+                qrisImageBase64 = base64Str;
+                updateTampilanGambarQRIS();
+                simpanSemuaData();
+                alert('Gambar QRIS RT berhasil disimpan & disinkronkan!');
+            });
+        }
+
+        function updatePengaturanQRIS() {
+            qrisMerchantName = document.getElementById('inputMerchantQRIS').value.trim() || 'Bendahara RT 05 MMR';
+            updateTampilanGambarQRIS();
+            simpanSemuaData();
+        }
+
+        function hapusGambarQRIS() {
+            if (confirm('Hapus gambar QRIS dari aplikasi?')) {
+                qrisImageBase64 = '';
+                updateTampilanGambarQRIS();
+                simpanSemuaData();
+            }
+        }
+
+        function updateTampilanGambarQRIS() {
+            const imgWarga = document.getElementById('imgQRISWarga');
+            const placeholder = document.getElementById('placeholderQRISBelumUpload');
+            const btnDl = document.getElementById('btnDownloadQRIS');
+            const displayMerchant = document.getElementById('displayMerchantQRIS');
+            const prevBox = document.getElementById('previewAdminQRISBox');
+            const prevImg = document.getElementById('previewAdminQRISImg');
+
+            if (displayMerchant) displayMerchant.innerText = qrisMerchantName;
+
+            if (qrisImageBase64) {
+                if (imgWarga) { imgWarga.src = qrisImageBase64; imgWarga.classList.remove('hidden'); }
+                if (placeholder) placeholder.classList.add('hidden');
+                if (btnDl) btnDl.classList.remove('hidden');
+                if (prevBox && prevImg) { prevImg.src = qrisImageBase64; prevBox.classList.remove('hidden'); }
+            } else {
+                if (imgWarga) imgWarga.classList.add('hidden');
+                if (placeholder) placeholder.classList.remove('hidden');
+                if (btnDl) btnDl.classList.add('hidden');
+                if (prevBox) prevBox.classList.add('hidden');
+            }
+        }
+
+        function downloadGambarQRIS() {
+            if (!qrisImageBase64) return;
+            const a = document.createElement('a');
+            a.href = qrisImageBase64;
+            a.download = `QRIS_${namaRT.replace(/\s+/g, '_')}.jpg`;
+            a.click();
+        }
+
+        function hitungKodeUnikRumah(subjekStr) {
+            // Ekstrak angka dari blok rumah (misal "Bpk. Ahmad (S14/01)" -> ambil 2-3 digit terakhir nomor rumah = 1)
+            const matchBlok = subjekStr.match(/\(([^)]+)\)/);
+            if (!matchBlok) return 0;
+            const nums = matchBlok[1].replace(/\D/g, '');
+            if (!nums) return 0;
+            const kode = parseInt(nums.slice(-3), 10);
+            return (kode > 0 && kode < 999) ? kode : 0;
+        }
+
+        function bukaModalQRIS(preselectSubjek = '') {
+            const selWarga = document.getElementById('qrisSelectWarga');
+            selWarga.innerHTML = '<option value="">-- Pilih Blok / Nama Anda --</option>' +
+                masterWarga.map(w => `<option value="${w.nama} (${w.blok})">${w.blok} - ${w.nama}</option>`).join('');
+
+            const selTahun = document.getElementById('qrisTahun');
+            const years = [];
+            for (let y = CURRENT_YEAR - 1; y <= CURRENT_YEAR + 1; y++) years.push(y);
+            selTahun.innerHTML = years.map(y => `<option value="${y}" ${y === CURRENT_YEAR ? 'selected' : ''}>${y}</option>`).join('');
+
+            const grid = document.getElementById('qrisCheckboxBulanGrid');
+            grid.innerHTML = BULAN_LIST.map((b, idx) => `
+                <label id="lblQRISBln_${idx}" class="flex items-center gap-1 bg-white border border-slate-300 rounded px-1.5 py-1 cursor-pointer hover:bg-teal-100 select-none">
+                    <input type="checkbox" name="cbQRISBulan" value="${b}" onchange="hitungNominalQRIS()" class="accent-teal-600">
+                    <span>${BULAN_SHORT_LIST[idx]}</span>
+                </label>
+            `).join('');
+
+            document.getElementById('qrisTglBayar').valueAsDate = new Date();
+            document.getElementById('qrisNamaPengirim').value = '';
+            document.getElementById('qrisBuktiFile').value = '';
+            document.getElementById('qrisBuktiPreview').classList.add('hidden');
+            tempBuktiWargaBase64 = '';
+
+            updateTampilanGambarQRIS();
+
+            if (preselectSubjek) {
+                selWarga.value = preselectSubjek;
+            }
+            onQRISWargaChange();
+            document.getElementById('modalBayarQRIS').classList.remove('hidden');
+        }
+
+        function tutupModalQRIS() {
+            document.getElementById('modalBayarQRIS').classList.add('hidden');
+        }
+
+        function onQRISWargaChange() {
+            updateStatusBulanQRIS();
+            hitungNominalQRIS();
+        }
+
+        function updateStatusBulanQRIS() {
+            const warga = document.getElementById('qrisSelectWarga').value;
+            const thn = document.getElementById('qrisTahun').value;
+            const infoEl = document.getElementById('qrisInfoLunas');
+
+            const lunasBulan = [];
+            BULAN_LIST.forEach((b, idx) => {
+                const lbl = document.getElementById(`lblQRISBln_${idx}`);
+                if (!warga) {
+                    lbl.className = "flex items-center gap-1 bg-white border border-slate-300 rounded px-1.5 py-1 cursor-pointer hover:bg-teal-100 select-none";
+                    return;
+                }
+                const isLunas = transaksi.some(t => t.tipe === 'IN' && t.subjek === warga && t.tahun == thn && getTransaksiBulanList(t).includes(b));
+                if (isLunas) {
+                    lunasBulan.push(BULAN_SHORT_LIST[idx]);
+                    lbl.className = "flex items-center gap-1 bg-emerald-100 border border-emerald-400 text-emerald-800 rounded px-1.5 py-1 cursor-pointer select-none";
+                } else {
+                    lbl.className = "flex items-center gap-1 bg-white border border-slate-300 rounded px-1.5 py-1 cursor-pointer hover:bg-teal-100 select-none";
+                }
+            });
+
+            if (!warga) {
+                infoEl.innerText = 'Pilih nama/blok warga untuk melihat bulan yang sudah lunas.';
+            } else {
+                infoEl.innerText = lunasBulan.length > 0
+                    ? `Sudah lunas (${thn}): ${lunasBulan.join(', ')} (hijau).`
+                    : `Belum ada catatan lunas di tahun ${thn}.`;
+            }
+        }
+
+        function hitungNominalQRIS() {
+            const warga = document.getElementById('qrisSelectWarga').value;
+            const checked = Array.from(document.querySelectorAll('input[name="cbQRISBulan"]:checked')).map(cb => cb.value);
+            const jmlBulan = checked.length > 0 ? checked.length : 1;
+            const kodeUnik = warga ? hitungKodeUnikRumah(warga) : 0;
+            const total = (jmlBulan * tarifIuran) + kodeUnik;
+
+            document.getElementById('qrisNominalInput').value = total;
+            updateDisplayNominalQRIS(kodeUnik, jmlBulan);
+        }
+
+        function updateDisplayNominalQRIS(kodeUnik = null, jmlBulan = null) {
+            const val = parseFloat(document.getElementById('qrisNominalInput').value) || 0;
+            document.getElementById('qrisTotalNominalDisplay').innerText = `Rp ${val.toLocaleString('id-ID')}`;
+            if (kodeUnik !== null && jmlBulan !== null) {
+                document.getElementById('qrisKodeUnikHint').innerText = kodeUnik > 0
+                    ? `Rincian: ${jmlBulan} bulan (Rp ${(jmlBulan * tarifIuran).toLocaleString('id-ID')}) + kode unik rumah Rp ${kodeUnik}.`
+                    : `Rincian: ${jmlBulan} bulan x Rp ${tarifIuran.toLocaleString('id-ID')}.`;
+            }
+        }
+
+        function previewBuktiWarga(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            kompresGambarBase64(file, 420, 0.65, (base64Str) => {
+                tempBuktiWargaBase64 = base64Str;
+                const prev = document.getElementById('qrisBuktiPreview');
+                prev.src = base64Str;
+                prev.classList.remove('hidden');
+            });
+        }
+
+        async function kirimKonfirmasiQRIS(e) {
+            e.preventDefault();
+            const subjek = document.getElementById('qrisSelectWarga').value;
+            const tahun = document.getElementById('qrisTahun').value;
+            const checkedBulan = Array.from(document.querySelectorAll('input[name="cbQRISBulan"]:checked')).map(cb => cb.value);
+            const tgl = document.getElementById('qrisTglBayar').value;
+            const jumlah = parseFloat(document.getElementById('qrisNominalInput').value) || 0;
+            const pengirim = document.getElementById('qrisNamaPengirim').value.trim();
+
+            if (!subjek) {
+                alert('Silakan pilih Blok & Nama Warga terlebih dahulu.');
+                return;
+            }
+            if (checkedBulan.length === 0) {
+                alert('Silakan centang minimal 1 bulan iuran yang dibayarkan.');
+                return;
+            }
+
+            const btn = document.getElementById('btnSubmitKonfirmasiQRIS');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim Konfirmasi...';
+
+            const itemKonfirmasi = {
+                id: Date.now(),
+                waktuKirim: new Date().toLocaleString('id-ID'),
+                tgl,
+                subjek,
+                bulanList: checkedBulan,
+                tahun,
+                jumlah,
+                pengirim: pengirim || '-',
+                buktiBase64: tempBuktiWargaBase64 || ''
+            };
+
+            pendingQRIS.push(itemKonfirmasi);
+            simpanKeLocalStorage();
+            renderPendingQRISTable();
+
+            // Kirim ke Google Sheets (tanpa butuh password pengurus karena ini antrean konfirmasi warga)
+            if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== "TEMPEL_URL_DISINI") {
+                try {
+                    await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            action: 'confirm_qris',
+                            item: itemKonfirmasi
+                        })
+                    });
+                } catch (err) {
+                    console.error('Gagal kirim antrean ke cloud:', err);
+                }
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Konfirmasi ke Kas RT';
+            tutupModalQRIS();
+            alert(`Terima kasih! Konfirmasi pembayaran QRIS untuk ${subjek} (${checkedBulan.join(', ')} ${tahun}) sebesar Rp ${jumlah.toLocaleString('id-ID')} telah dikirim ke Pengurus RT untuk diverifikasi.`);
+        }
+
+        function kirimKonfirmasiQRISKeWA() {
+            const subjek = document.getElementById('qrisSelectWarga').value || 'Warga RT 005';
+            const tahun = document.getElementById('qrisTahun').value;
+            const checkedBulan = Array.from(document.querySelectorAll('input[name="cbQRISBulan"]:checked')).map(cb => cb.value);
+            const tgl = document.getElementById('qrisTglBayar').value;
+            const jumlah = parseFloat(document.getElementById('qrisNominalInput').value) || 0;
+            const pengirim = document.getElementById('qrisNamaPengirim').value.trim();
+
+            const teks = encodeURIComponent(
+                `*KONFIRMASI PEMBAYARAN IURAN QRIS - ${namaRT.toUpperCase()}*
+` +
+                `Warga: *${subjek}*
+` +
+                `Bulan Iuran: ${checkedBulan.length > 0 ? checkedBulan.join(', ') : '-'} ${tahun}
+` +
+                `Tanggal Transfer: ${formatTanggalIndo(tgl)}
+` +
+                `Nominal: *Rp ${jumlah.toLocaleString('id-ID')}*
+` +
+                (pengirim ? `Akun Pengirim: ${pengirim}
+` : '') +
+                `Mohon dicek mutasi QRIS-nya. Terima kasih.`
+            );
+            window.open(`https://api.whatsapp.com/send?text=${teks}`, '_blank');
+        }
+
+        function renderPendingQRISTable() {
+            const badge = document.getElementById('badgePendingQRIS');
+            if (badge) {
+                if (pendingQRIS.length > 0) {
+                    badge.innerText = pendingQRIS.length;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+
+            const tbody = document.getElementById('tabelPendingQRISBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (pendingQRIS.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400 italic">Belum ada konfirmasi pembayaran QRIS baru dari warga.</td></tr>`;
+                return;
+            }
+
+            pendingQRIS.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-300 hover:bg-teal-50/40";
+                tr.innerHTML = `
+                    <td class="p-2.5 border border-slate-300 text-[11px] text-slate-600">${item.waktuKirim || formatTanggalIndo(item.tgl)}</td>
+                    <td class="p-2.5 border border-slate-300 font-bold text-slate-800">${item.subjek}</td>
+                    <td class="p-2.5 border border-slate-300 text-teal-800 font-semibold">${(item.bulanList || []).join(', ')} ${item.tahun}</td>
+                    <td class="p-2.5 border border-slate-300 text-right font-mono font-bold text-emerald-700">Rp ${Number(item.jumlah).toLocaleString('id-ID')}</td>
+                    <td class="p-2.5 border border-slate-300 text-xs">
+                        <div>Pengirim: <strong>${item.pengirim || '-'}</strong></div>
+                        ${item.buktiBase64
+                            ? `<button onclick="lihatBuktiPending(${item.id})" class="mt-1 bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold"><i class="fa-solid fa-image"></i> Lihat Bukti</button>`
+                            : `<span class="text-[10px] text-slate-400 italic">Tanpa lampiran foto</span>`}
+                    </td>
+                    <td class="p-2.5 border border-slate-300 text-center">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="setujuiPendingQRIS(${item.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1 rounded text-xs shadow flex items-center gap-1">
+                                <i class="fa-solid fa-check"></i> ACC / Lunas
+                            </button>
+                            <button onclick="tolakPendingQRIS(${item.id})" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-2 py-1 rounded text-xs shadow" title="Hapus / Tolak">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function lihatBuktiPending(id) {
+            const item = pendingQRIS.find(p => p.id === id);
+            if (!item || !item.buktiBase64) return;
+            document.getElementById('imgFullBukti').src = item.buktiBase64;
+            document.getElementById('modalPreviewBukti').classList.remove('hidden');
+        }
+
+        async function setujuiPendingQRIS(id) {
+            const idx = pendingQRIS.findIndex(p => p.id === id);
+            if (idx === -1) return;
+            const item = pendingQRIS[idx];
+
+            const newTrxId = Date.now();
+            const ketStr = item.bulanList.length === 1
+                ? `Iuran Bulan ${item.bulanList[0]} (QRIS)`
+                : `Iuran Rapel (${item.bulanList.join(', ')}) (QRIS)`;
+
+            transaksi.push({
+                id: newTrxId,
+                tgl: item.tgl,
+                pos: masterPos[0] || 'Operasional',
+                tipe: 'IN',
+                ket: ketStr,
+                subjek: item.subjek,
+                bulan: item.bulanList[0] || '',
+                bulanList: item.bulanList,
+                tahun: item.tahun,
+                jumlah: Number(item.jumlah)
+            });
+
+            pendingQRIS.splice(idx, 1);
+            renderAllViews();
+            await simpanSemuaData();
+            bukaKuitansi(newTrxId);
+        }
+
+        async function tolakPendingQRIS(id) {
+            if (!confirm('Hapus/tolak data konfirmasi QRIS ini?')) return;
+            pendingQRIS = pendingQRIS.filter(p => p.id !== id);
+            renderPendingQRISTable();
+            await simpanSemuaData();
+        }
+
     </script>
 </body>
 </html>
