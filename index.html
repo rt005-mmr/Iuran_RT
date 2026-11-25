@@ -132,7 +132,7 @@
                                 <span class="text-slate-900 font-bold" id="labelBulanLaporan">Nov-26</span>
                             </div>
                             <div class="flex justify-between max-w-xs">
-                                <span class="text-slate-600">Saldo Awal (Lalu):</span>
+                                <span class="text-slate-600" id="textLabelSaldoLalu">Saldo Awal (Lalu):</span>
                                 <span class="text-emerald-700 font-bold" id="labelSaldoLalu">Rp 0</span>
                             </div>
                             <div class="flex justify-between max-w-xs pt-1 border-t sm:border-t-0">
@@ -143,7 +143,7 @@
 
                         <div class="space-y-1 sm:text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200">
                             <div class="flex justify-between sm:justify-end gap-2 max-w-xs sm:ml-auto">
-                                <span class="text-slate-600">Saldo Mutasi Thn Ini:</span>
+                                <span class="text-slate-600" id="textLabelMutasi">Saldo Mutasi Periode:</span>
                                 <span class="text-slate-900 font-bold" id="labelSaldoMutasiThn">Rp 0</span>
                             </div>
                             <div class="flex justify-between sm:justify-end gap-2 max-w-xs sm:ml-auto">
@@ -167,23 +167,30 @@
                             <input type="text" id="inputLabelKas" onchange="updateInfoLaporan()" class="w-full border rounded px-2 py-1 font-bold focus:ring-2 focus:ring-emerald-500 outline-none">
                         </div>
                         <div>
-                            <label class="block font-bold text-slate-700 mb-1">Pilih Bulan Periode:</label>
+                            <label class="block font-bold text-slate-700 mb-1">Set Periode Default:</label>
                             <select id="selectBulanHeader" onchange="updateInfoLaporan()" class="w-full border rounded px-2 py-1 font-bold focus:ring-2 focus:ring-emerald-500 outline-none"></select>
                         </div>
                         <div>
-                            <label class="block font-bold text-slate-700 mb-1">Set Saldo Awal (Lalu):</label>
+                            <label class="block font-bold text-slate-700 mb-1">Saldo Awal Tahun (Rp):</label>
                             <input type="number" id="inputSaldoLalu" placeholder="0" onchange="updateInfoLaporan()" onfocus="this.select()" class="w-full border rounded px-2 py-1 font-mono font-bold focus:ring-2 focus:ring-emerald-500 outline-none">
                         </div>
                     </div>
 
+                    <!-- Baris Filter (Tampil untuk Warga maupun Pengurus) -->
                     <div class="no-print flex justify-between items-center mb-3 flex-wrap gap-2 text-xs">
-                        <div class="relative flex-1 min-w-[200px]">
+                        <div class="relative flex-1 min-w-[180px]">
                             <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400"></i>
                             <input type="text" id="searchKasInput" onkeyup="renderLaporanTable()" placeholder="Cari keterangan / nama warga..." class="w-full border rounded-lg pl-8 pr-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none">
                         </div>
-                        <div class="flex items-center gap-1.5">
-                            <label class="font-bold text-slate-600">Filter Pos:</label>
-                            <select id="filterPosLaporan" onchange="renderLaporanTable()" class="border rounded px-2 py-1.5 font-semibold text-slate-700 border-slate-300"></select>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <div class="flex items-center gap-1">
+                                <label class="font-bold text-slate-600">Bulan:</label>
+                                <select id="filterBulanLaporan" onchange="renderLaporanTable()" class="border rounded px-2 py-1.5 font-bold text-emerald-800 bg-emerald-50 border-emerald-300"></select>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <label class="font-bold text-slate-600">Pos:</label>
+                                <select id="filterPosLaporan" onchange="renderLaporanTable()" class="border rounded px-2 py-1.5 font-semibold text-slate-700 border-slate-300"></select>
+                            </div>
                         </div>
                     </div>
 
@@ -546,12 +553,21 @@
         // =========================================================================
 
         const BULAN_LIST = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-        const CURRENT_YEAR = new Date().getFullYear();
+        const BULAN_SHORT_LIST = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        
+        // Dinamis mengikuti tanggal kalender hari ini secara otomatis
+        const NOW_DATE = new Date();
+        const CURRENT_YEAR = NOW_DATE.getFullYear();
+        const CURRENT_MONTH_IDX = NOW_DATE.getMonth();
+        const CURRENT_PERIODE_CODE = `${BULAN_SHORT_LIST[CURRENT_MONTH_IDX]}-${CURRENT_YEAR.toString().slice(-2)}`;
 
-        const BULAN_SHORT_OPTIONS = [
-            ...BULAN_LIST.map(b => `${b.slice(0,3)}-${CURRENT_YEAR.toString().slice(-2)}`),
-            ...BULAN_LIST.map(b => `${b.slice(0,3)}-${(CURRENT_YEAR + 1).toString().slice(-2)}`)
-        ];
+        // Otomatis menyediakan daftar periode dari tahun lalu, tahun ini, hingga 2 tahun ke depan
+        const BULAN_SHORT_OPTIONS = [];
+        for (let y = CURRENT_YEAR - 1; y <= CURRENT_YEAR + 2; y++) {
+            BULAN_SHORT_LIST.forEach(b => {
+                BULAN_SHORT_OPTIONS.push(`${b}-${y.toString().slice(-2)}`);
+            });
+        }
 
         const DEFAULT_WARGA = [
             { blok: 'A-01', nama: 'Bpk. Ahmad' },
@@ -569,7 +585,8 @@
         let saldoLalu = (savedSaldo !== null && savedSaldo !== '') ? parseFloat(savedSaldo) : 0;
         
         let labelKas = localStorage.getItem('rt005_label_kas') || 'Kas Kecil';
-        let bulanHeader = localStorage.getItem('rt005_bulan_header') || `Nov-${CURRENT_YEAR.toString().slice(-2)}`;
+        // Default menggunakan 'AUTO' agar selalu mengikuti bulan & tahun kalender secara otomatis
+        let bulanHeader = localStorage.getItem('rt005_bulan_header') || 'AUTO';
         let namaRT = localStorage.getItem('rt005_nama_rt') || 'RT 005 MMR';
 
         let isWargaMode = true;
@@ -660,7 +677,7 @@
             }
         }
 
-        // SIMPAN DATA KE LOCALSTORAGE + KIRIM OTOMATIS KE GOOGLE SHEETS DENGAN VALIDASI PASSWORD SERVER
+        // SIMPAN DATA KE LOCALSTORAGE + KIRIM OTOMATIS KE GOOGLE SHEETS
         async function simpanSemuaData() {
             simpanKeLocalStorage();
 
@@ -707,7 +724,7 @@
             localStorage.setItem('rt005_bulan_header', bulanHeader);
         }
 
-        // VERIFIKASI PASSWORD LANGSUNG DI SERVER GOOGLE APPS SCRIPT (DENGAN DIAGNOSA ERROR)
+        // VERIFIKASI PASSWORD LANGSUNG DI SERVER GOOGLE APPS SCRIPT
         async function toggleWargaMode() {
             if (isWargaMode) {
                 const rawPass = prompt("Masukkan Password Pengurus RT:");
@@ -737,7 +754,7 @@
                     try {
                         resData = JSON.parse(rawText);
                     } catch (parseErr) {
-                        alert("Server Google tidak membalas format JSON (kemungkinan deployment belum 'New version' atau izin akses bukan 'Anyone').\n\nBalasan mentah server:\n" + rawText.slice(0, 250));
+                        alert("Server Google tidak membalas format JSON.\n\nBalasan mentah server:\n" + rawText.slice(0, 250));
                         txt.innerText = "Mode Pengurus";
                         return;
                     }
@@ -891,7 +908,11 @@
         }
 
         function renderYearOptions() {
-            const years = [CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1];
+            // Rentang otomatis: 2 tahun ke belakang s.d. 2 tahun ke depan
+            const years = [];
+            for (let y = CURRENT_YEAR - 2; y <= CURRENT_YEAR + 2; y++) {
+                years.push(y);
+            }
             
             const selMatriks = document.getElementById('filterTahunMatriks');
             selMatriks.innerHTML = years.map(y => `<option value="${y}" ${y === CURRENT_YEAR ? 'selected' : ''}>${y}</option>`).join('');
@@ -905,13 +926,26 @@
 
         function renderFilterBulanTunggakan() {
             const sel = document.getElementById('filterBulanTunggakan');
-            const currMonth = new Date().getMonth();
-            sel.innerHTML = BULAN_LIST.map((b, idx) => `<option value="${idx}" ${idx === currMonth ? 'selected' : ''}>${b}</option>`).join('');
+            sel.innerHTML = BULAN_LIST.map((b, idx) => `<option value="${idx}" ${idx === CURRENT_MONTH_IDX ? 'selected' : ''}>${b}</option>`).join('');
         }
 
         function renderSelectHeaderBulan() {
             const sel = document.getElementById('selectBulanHeader');
-            sel.innerHTML = BULAN_SHORT_OPTIONS.map(b => `<option value="${b}" ${b === bulanHeader ? 'selected' : ''}>${b}</option>`).join('');
+            sel.innerHTML = `<option value="AUTO" ${bulanHeader === 'AUTO' ? 'selected' : ''}>Otomatis (${CURRENT_PERIODE_CODE})</option>` +
+                BULAN_SHORT_OPTIONS.map(b => `<option value="${b}" ${b === bulanHeader ? 'selected' : ''}>${b}</option>`).join('');
+
+            const selFilterBulan = document.getElementById('filterBulanLaporan');
+            const currentVal = selFilterBulan.value;
+            const targetDefault = (bulanHeader === 'AUTO') ? CURRENT_PERIODE_CODE : bulanHeader;
+
+            selFilterBulan.innerHTML = `<option value="ALL">Semua Bulan</option>` + 
+                BULAN_SHORT_OPTIONS.map(b => `<option value="${b}">${b}</option>`).join('');
+            
+            if (currentVal && (currentVal === 'ALL' || BULAN_SHORT_OPTIONS.includes(currentVal))) {
+                selFilterBulan.value = currentVal;
+            } else {
+                selFilterBulan.value = targetDefault;
+            }
         }
 
         function renderSelects() {
@@ -920,8 +954,7 @@
                 masterWarga.map(w => `<option value="${w.nama} (${w.blok})">${w.blok} - ${w.nama}</option>`).join('');
 
             const selBulan = document.getElementById('bulanMasuk');
-            const currMonth = new Date().getMonth();
-            selBulan.innerHTML = BULAN_LIST.map((b, idx) => `<option value="${b}" ${idx === currMonth ? 'selected' : ''}>${b}</option>`).join('');
+            selBulan.innerHTML = BULAN_LIST.map((b, idx) => `<option value="${b}" ${idx === CURRENT_MONTH_IDX ? 'selected' : ''}>${b}</option>`).join('');
         }
 
         function updateInfoLaporan() {
@@ -929,11 +962,24 @@
             labelKas = document.getElementById('inputLabelKas').value;
             bulanHeader = document.getElementById('selectBulanHeader').value;
             
+            document.getElementById('filterBulanLaporan').value = (bulanHeader === 'AUTO') ? CURRENT_PERIODE_CODE : bulanHeader;
+
             const valSaldo = document.getElementById('inputSaldoLalu').value;
             saldoLalu = (valSaldo !== '' && !isNaN(valSaldo)) ? parseFloat(valSaldo) : 0;
 
             renderLaporanTable();
             simpanSemuaData();
+        }
+
+        // Helper untuk mendapatkan kode bulan-tahun dari tanggal transaksi (misal "2027-01-13" -> "Jan-27")
+        function getKodeBulanTahun(tglStr) {
+            if (!tglStr) return '';
+            const parts = tglStr.split('-'); // [YYYY, MM, DD]
+            if (parts.length < 2) return '';
+            const thnShort = parts[0].slice(-2);
+            const blnIdx = parseInt(parts[1], 10) - 1;
+            if (blnIdx < 0 || blnIdx > 11) return '';
+            return `${BULAN_SHORT_LIST[blnIdx]}-${thnShort}`;
         }
 
         function renderTunggakan() {
@@ -1017,6 +1063,11 @@
                 document.getElementById('ketMasuk').value = '';
                 document.getElementById('jumlahMasuk').value = '';
 
+                const kodeBlnTrx = getKodeBulanTahun(tgl);
+                if (BULAN_SHORT_OPTIONS.includes(kodeBlnTrx)) {
+                    document.getElementById('filterBulanLaporan').value = kodeBlnTrx;
+                }
+
                 simpanSemuaData();
                 switchTab('laporan');
                 bukaKuitansi(newId);
@@ -1030,6 +1081,11 @@
                 document.getElementById('ketKeluar').value = '';
                 document.getElementById('jumlahKeluar').value = '';
 
+                const kodeBlnTrx = getKodeBulanTahun(tgl);
+                if (BULAN_SHORT_OPTIONS.includes(kodeBlnTrx)) {
+                    document.getElementById('filterBulanLaporan').value = kodeBlnTrx;
+                }
+
                 simpanSemuaData();
                 alert('Transaksi Keluar Berhasil Disimpan!');
                 switchTab('laporan');
@@ -1040,8 +1096,7 @@
             if(!tglStr) return '-';
             const d = new Date(tglStr);
             const tgl = d.getDate().toString().padStart(2, '0');
-            const blnList = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-            const bln = blnList[d.getMonth()];
+            const bln = BULAN_SHORT_LIST[d.getMonth()];
             const thn = d.getFullYear().toString().slice(-2);
             return `${tgl}-${bln}-${thn}`;
         }
@@ -1052,17 +1107,40 @@
 
             const searchQuery = document.getElementById('searchKasInput').value.toLowerCase();
             const filterPos = document.getElementById('filterPosLaporan').value;
+            const filterBulan = document.getElementById('filterBulanLaporan').value;
 
             let totalMasuk = 0;
             let totalKeluar = 0;
+            let mutasiSebelumBulanIni = 0;
+            let jumlahBarisTampil = 0;
+
+            // Tentukan batas awal tanggal jika filter bulan spesifik dipilih (misal "Jan-27" -> "2027-01-01")
+            let batasAwalPeriode = null;
+            if (filterBulan && filterBulan !== 'ALL' && filterBulan.includes('-')) {
+                const [blnShort, thnShort] = filterBulan.split('-');
+                const blnIdx = BULAN_SHORT_LIST.indexOf(blnShort);
+                if (blnIdx !== -1 && thnShort) {
+                    const mm = String(blnIdx + 1).padStart(2, '0');
+                    batasAwalPeriode = `20${thnShort}-${mm}-01`;
+                }
+            }
 
             const sorted = [...transaksi].sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
 
             sorted.forEach(t => {
                 const matchPos = filterPos === 'ALL' || t.pos === filterPos;
+                const kodeBlnTrx = getKodeBulanTahun(t.tgl);
+                const matchBulan = filterBulan === 'ALL' || kodeBlnTrx === filterBulan;
                 const matchSearch = t.ket.toLowerCase().includes(searchQuery) || (t.subjek && t.subjek.toLowerCase().includes(searchQuery));
 
-                if(matchPos && matchSearch) {
+                // Hitung saldo berjalan dari bulan-bulan & tahun-tahun sebelumnya secara otomatis
+                if (batasAwalPeriode && t.tgl < batasAwalPeriode && matchPos) {
+                    if (t.tipe === 'IN') mutasiSebelumBulanIni += t.jumlah;
+                    else mutasiSebelumBulanIni -= t.jumlah;
+                }
+
+                if (matchPos && matchBulan && matchSearch) {
+                    jumlahBarisTampil++;
                     const tr = document.createElement('tr');
                     tr.className = "border-b border-slate-300 hover:bg-slate-50";
 
@@ -1089,13 +1167,19 @@
                 }
             });
 
-            const saldoMutasiThn = totalMasuk - totalKeluar;
-            const saldoAkhir = saldoLalu + saldoMutasiThn;
+            if (jumlahBarisTampil === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400 italic">Belum ada transaksi tercatat pada periode ini.</td></tr>`;
+            }
 
+            const saldoAwalTampil = saldoLalu + mutasiSebelumBulanIni;
+            const saldoMutasiPeriode = totalMasuk - totalKeluar;
+            const saldoAkhir = saldoAwalTampil + saldoMutasiPeriode;
+
+            const periodeAktifText = (filterBulan && filterBulan !== 'ALL') ? filterBulan : `Semua Bulan`;
             let thnDisplay = CURRENT_YEAR;
-            if(bulanHeader && bulanHeader.includes('-')) {
-                const parts = bulanHeader.split('-');
-                if(parts[1]) thnDisplay = '20' + parts[1];
+            if (filterBulan && filterBulan !== 'ALL' && filterBulan.includes('-')) {
+                const parts = filterBulan.split('-');
+                if (parts[1]) thnDisplay = '20' + parts[1];
             }
 
             document.getElementById('appTitleHeader').innerText = `Kas ${namaRT}`;
@@ -1104,9 +1188,10 @@
             document.getElementById('labelSubJudulWarga').innerText = namaRT;
 
             document.getElementById('labelKasKecilView').innerText = `${labelKas}:`;
-            document.getElementById('labelBulanLaporan').innerText = bulanHeader;
-            document.getElementById('labelSaldoLalu').innerText = `Rp ${saldoLalu.toLocaleString('id-ID')}`;
-            document.getElementById('labelSaldoMutasiThn').innerText = `Rp ${saldoMutasiThn.toLocaleString('id-ID')}`;
+            document.getElementById('labelBulanLaporan').innerText = periodeAktifText;
+            document.getElementById('textLabelSaldoLalu').innerText = (filterBulan === 'ALL') ? 'Saldo Awal (Lalu):' : 'Saldo Awal Bulan:';
+            document.getElementById('labelSaldoLalu').innerText = `Rp ${saldoAwalTampil.toLocaleString('id-ID')}`;
+            document.getElementById('labelSaldoMutasiThn').innerText = `Rp ${saldoMutasiPeriode.toLocaleString('id-ID')}`;
             document.getElementById('labelSaldoAkhir').innerText = `Rp ${saldoAkhir.toLocaleString('id-ID')}`;
             document.getElementById('labelTotalMasuk').innerText = `Rp ${totalMasuk.toLocaleString('id-ID')}`;
             document.getElementById('labelTotalKeluar').innerText = `Rp ${totalKeluar.toLocaleString('id-ID')}`;
@@ -1279,6 +1364,7 @@
                 masterPos = DEFAULT_POS;
                 transaksi = [];
                 saldoLalu = 0;
+                bulanHeader = 'AUTO';
                 await simpanSemuaData();
                 location.reload();
             }
