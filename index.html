@@ -525,18 +525,17 @@
                                 <i class="fa-solid fa-qrcode text-teal-600"></i> Pengaturan Gambar QRIS RT
                             </h2>
                             <div class="space-y-2 text-xs">
-                                <p class="text-[11px] text-slate-500">Upload gambar QRIS resmi RT 005 (otomatis dikompres agar ringan tersimpan di Google Sheets) agar warga bisa langsung scan dari aplikasi.</p>
-                                <input type="file" id="uploadGambarQRISInput" accept="image/*" onchange="handleUploadGambarQRIS(event)" class="hidden">
-                                <button type="button" onclick="document.getElementById('uploadGambarQRISInput').click()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-1.5 px-2 rounded shadow transition flex items-center justify-center gap-1.5">
-                                    <i class="fa-solid fa-image"></i> Upload Foto/Gambar QRIS
-                                </button>
+                                <p class="text-[11px] text-slate-500">Secara default memuat file <strong>Qris RT005.jpeg</strong> dari folder GitHub Pages agar ringan dan tidak membebani kuota sel Google Sheets.</p>
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-600 uppercase mt-2 mb-0.5">Nama Merchant / Penerima QRIS:</label>
-                                    <input type="text" id="inputMerchantQRIS" onchange="updatePengaturanQRIS()" placeholder="Bendahara RT 05 MMR" class="w-full border rounded p-1.5 text-xs font-semibold">
+                                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Nama File / URL Gambar QRIS:</label>
+                                    <input type="text" id="inputUrlQRIS" onchange="updatePengaturanQRIS()" placeholder="Qris RT005.jpeg" class="w-full border rounded p-1.5 text-xs font-mono">
                                 </div>
-                                <div id="previewAdminQRISBox" class="hidden pt-1 text-center">
-                                    <img id="previewAdminQRISImg" src="" alt="Preview QRIS" class="max-h-32 mx-auto border rounded p-1 bg-white">
-                                    <button type="button" onclick="hapusGambarQRIS()" class="text-[10px] text-rose-600 hover:underline mt-1">Hapus Gambar QRIS</button>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-600 uppercase mt-1 mb-0.5">Nama Merchant / Penerima QRIS:</label>
+                                    <input type="text" id="inputMerchantQRIS" onchange="updatePengaturanQRIS()" placeholder="Bendahara RT 05, Kon... (NMID: ID1026645805148)" class="w-full border rounded p-1.5 text-xs font-semibold">
+                                </div>
+                                <div id="previewAdminQRISBox" class="pt-1 text-center">
+                                    <img id="previewAdminQRISImg" src="Qris RT005.jpeg" onerror="this.style.display='none'" alt="Preview QRIS" class="max-h-36 mx-auto border rounded p-1 bg-white">
                                 </div>
                             </div>
                         </div>
@@ -601,18 +600,18 @@
                     </span>
                     <div class="font-bold text-slate-800 text-sm mb-2" id="displayMerchantQRIS">Bendahara RT 05 MMR</div>
 
-                    <div id="containerGambarQRIS" class="w-full max-w-[230px] bg-white border-2 border-teal-600 rounded-xl p-2 shadow-sm mb-2.5">
-                        <img id="imgQRISWarga" src="" alt="QRIS RT 005" class="w-full h-auto rounded hidden">
-                        <div id="placeholderQRISBelumUpload" class="py-8 px-3 text-slate-500 text-[11px] space-y-2">
+                    <div id="containerGambarQRIS" class="w-full max-w-[240px] bg-white border-2 border-teal-600 rounded-xl p-2 shadow-sm mb-2.5">
+                        <img id="imgQRISWarga" src="Qris RT005.jpeg" alt="QRIS RT 005" onload="onQRISImageLoaded()" onerror="onQRISImageError()" class="w-full h-auto rounded">
+                        <div id="placeholderQRISBelumUpload" class="hidden py-8 px-3 text-slate-500 text-[11px] space-y-2">
                             <i class="fa-solid fa-qrcode text-4xl text-slate-300"></i>
-                            <p class="font-semibold text-slate-700">Gambar QRIS belum diunggah di pengaturan aplikasi.</p>
-                            <p class="text-[10px]">Silakan gunakan gambar QRIS resmi yang dibagikan di grup WhatsApp RT 005, lalu isi form konfirmasi di samping.</p>
+                            <p class="font-semibold text-slate-700">File Qris RT005.jpeg tidak ditemukan.</p>
+                            <p class="text-[10px]">Pastikan file gambar <strong>Qris RT005.jpeg</strong> sudah diunggah ke repository GitHub sejajar dengan index.html.</p>
                         </div>
                     </div>
 
-                    <button id="btnDownloadQRIS" onclick="downloadGambarQRIS()" class="hidden text-[11px] bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold px-3 py-1 rounded-lg mb-3 flex items-center gap-1 shadow-sm">
+                    <a id="btnDownloadQRIS" href="Qris RT005.jpeg" download="Qris RT005.jpeg" class="text-[11px] bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold px-3 py-1 rounded-lg mb-3 flex items-center gap-1 shadow-sm">
                         <i class="fa-solid fa-download text-teal-600"></i> Simpan Gambar QRIS ke HP
-                    </button>
+                    </a>
 
                     <div class="w-full bg-amber-50 border border-amber-300 rounded-lg p-2.5 text-left space-y-1">
                         <div class="text-[10px] font-bold text-amber-900 uppercase">Total Transfer (Termasuk Kode Unik Rumah):</div>
@@ -862,8 +861,9 @@
         let masterPos = JSON.parse(localStorage.getItem('rt005_pos_keuangan')) || DEFAULT_POS;
         let transaksi = JSON.parse(localStorage.getItem('rt005_transaksi')) || [];
         let pendingQRIS = JSON.parse(localStorage.getItem('rt005_pending_qris')) || [];
-        let qrisImageBase64 = localStorage.getItem('rt005_qris_image') || '';
-        let qrisMerchantName = localStorage.getItem('rt005_qris_merchant') || 'Bendahara RT 05 MMR';
+        localStorage.removeItem('rt005_qris_image');
+        let qrisImageUrl = localStorage.getItem('rt005_qris_image_url') || 'Qris RT005.jpeg';
+        let qrisMerchantName = localStorage.getItem('rt005_qris_merchant') || 'Bendahara RT 05, Kon... (NMID: ID1026645805148)';
         let tempBuktiWargaBase64 = '';
         
         let savedSaldo = localStorage.getItem('rt005_saldo_lalu');
@@ -905,6 +905,9 @@
             document.getElementById('inputLabelKas').value = labelKas;
             document.getElementById('inputNamaRT').value = namaRT;
             document.getElementById('inputTarifIuran').value = tarifIuran;
+            if (document.getElementById('inputUrlQRIS')) {
+                document.getElementById('inputUrlQRIS').value = qrisImageUrl;
+            }
             if (document.getElementById('inputMerchantQRIS')) {
                 document.getElementById('inputMerchantQRIS').value = qrisMerchantName;
             }
@@ -963,7 +966,7 @@
                     if (data.masterPos) masterPos = data.masterPos;
                     if (data.transaksi) transaksi = data.transaksi;
                     if (data.pendingQRIS) pendingQRIS = data.pendingQRIS;
-                    if (data.qrisImageBase64 !== undefined) qrisImageBase64 = data.qrisImageBase64;
+                    if (data.qrisImageUrl) qrisImageUrl = data.qrisImageUrl;
                     if (data.qrisMerchantName) qrisMerchantName = data.qrisMerchantName;
                     if (data.saldoLalu !== undefined) saldoLalu = parseFloat(data.saldoLalu) || 0;
                     if (data.namaRT) namaRT = data.namaRT;
@@ -1018,13 +1021,27 @@
                 }
 
                 const newTimestamp = Date.now();
+                // Pastikan tidak menyimpan string Base64 gambar raksasa ke sel A1 Google Sheets (batas maksimal 50.000 karakter per sel)
+                const safeQrisUrl = (qrisImageUrl && qrisImageUrl.startsWith('data:')) ? 'Qris RT005.jpeg' : (qrisImageUrl || 'Qris RT005.jpeg');
+                const safePendingQRIS = pendingQRIS.map(p => ({
+                    ...p,
+                    buktiBase64: (p.buktiBase64 && p.buktiBase64.length > 15000) ? '' : (p.buktiBase64 || '')
+                }));
+
                 const dataToSave = {
                     namaRT, labelKas, bulanHeader, saldoLalu,
                     tarifIuran, mulaiTagihanBulan, mulaiTagihanTahun,
-                    qrisImageBase64, qrisMerchantName,
+                    qrisImageUrl: safeQrisUrl, qrisMerchantName,
                     lastUpdated: newTimestamp,
-                    masterWarga, masterPos, transaksi, pendingQRIS
+                    masterWarga, masterPos, transaksi, pendingQRIS: safePendingQRIS
                 };
+
+                let jsonPayloadStr = JSON.stringify(dataToSave);
+                if (jsonPayloadStr.length > 48000) {
+                    // Jika masih mendekati batas 50.000 karakter sel Google Sheets, pangkas lampiran foto pada antrean QRIS
+                    dataToSave.pendingQRIS = safePendingQRIS.map(p => ({ ...p, buktiBase64: '' }));
+                    jsonPayloadStr = JSON.stringify(dataToSave);
+                }
 
                 const response = await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
@@ -1035,15 +1052,23 @@
                         payload: dataToSave
                     })
                 });
-                const resData = await response.json();
+                const rawRes = await response.text();
+                let resData;
+                try {
+                    resData = JSON.parse(rawRes);
+                } catch (e) {
+                    setSyncBadge('error', 'Error Server Google');
+                    alert('Terjadi kesalahan di Google Sheets (kemungkinan ukuran data melebihi 50.000 karakter):\n' + rawRes.slice(0, 200));
+                    return;
+                }
 
                 if (resData.status === 'success') {
                     lastCloudTimestamp = newTimestamp;
                     localStorage.setItem('rt005_last_updated', lastCloudTimestamp);
                     setSyncBadge('success', 'Tersimpan di Google Sheets');
                 } else {
-                    setSyncBadge('error', 'Ditolak Server (Cek Password)');
-                    alert('Gagal menyimpan ke server: Password sesi tidak valid. Silakan login ulang di Mode Pengurus.');
+                    setSyncBadge('error', 'Ditolak Server (' + (resData.status || 'Error') + ')');
+                    alert('Gagal menyimpan ke server: ' + (resData.message || resData.status || 'Password sesi tidak valid. Silakan login ulang di Mode Pengurus.'));
                 }
             } catch (err) {
                 console.error(err);
@@ -1056,7 +1081,7 @@
             localStorage.setItem('rt005_pos_keuangan', JSON.stringify(masterPos));
             localStorage.setItem('rt005_transaksi', JSON.stringify(transaksi));
             localStorage.setItem('rt005_pending_qris', JSON.stringify(pendingQRIS));
-            localStorage.setItem('rt005_qris_image', qrisImageBase64);
+            localStorage.setItem('rt005_qris_image_url', qrisImageUrl);
             localStorage.setItem('rt005_qris_merchant', qrisMerchantName);
             localStorage.setItem('rt005_saldo_lalu', saldoLalu);
             localStorage.setItem('rt005_nama_rt', namaRT);
@@ -2105,60 +2130,45 @@
             reader.readAsDataURL(file);
         }
 
-        function handleUploadGambarQRIS(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            kompresGambarBase64(file, 450, 0.85, (base64Str) => {
-                qrisImageBase64 = base64Str;
-                updateTampilanGambarQRIS();
-                simpanSemuaData();
-                alert('Gambar QRIS RT berhasil disimpan & disinkronkan!');
-            });
-        }
-
         function updatePengaturanQRIS() {
-            qrisMerchantName = document.getElementById('inputMerchantQRIS').value.trim() || 'Bendahara RT 05 MMR';
+            qrisImageUrl = document.getElementById('inputUrlQRIS').value.trim() || 'Qris RT005.jpeg';
+            qrisMerchantName = document.getElementById('inputMerchantQRIS').value.trim() || 'Bendahara RT 05, Kon... (NMID: ID1026645805148)';
             updateTampilanGambarQRIS();
             simpanSemuaData();
         }
 
-        function hapusGambarQRIS() {
-            if (confirm('Hapus gambar QRIS dari aplikasi?')) {
-                qrisImageBase64 = '';
-                updateTampilanGambarQRIS();
-                simpanSemuaData();
-            }
+        function onQRISImageLoaded() {
+            const imgWarga = document.getElementById('imgQRISWarga');
+            const placeholder = document.getElementById('placeholderQRISBelumUpload');
+            const btnDl = document.getElementById('btnDownloadQRIS');
+            if (imgWarga) imgWarga.classList.remove('hidden');
+            if (placeholder) placeholder.classList.add('hidden');
+            if (btnDl) btnDl.classList.remove('hidden');
+        }
+
+        function onQRISImageError() {
+            const imgWarga = document.getElementById('imgQRISWarga');
+            const placeholder = document.getElementById('placeholderQRISBelumUpload');
+            const btnDl = document.getElementById('btnDownloadQRIS');
+            if (imgWarga) imgWarga.classList.add('hidden');
+            if (placeholder) placeholder.classList.remove('hidden');
+            if (btnDl) btnDl.classList.add('hidden');
         }
 
         function updateTampilanGambarQRIS() {
             const imgWarga = document.getElementById('imgQRISWarga');
-            const placeholder = document.getElementById('placeholderQRISBelumUpload');
             const btnDl = document.getElementById('btnDownloadQRIS');
             const displayMerchant = document.getElementById('displayMerchantQRIS');
-            const prevBox = document.getElementById('previewAdminQRISBox');
             const prevImg = document.getElementById('previewAdminQRISImg');
+            const activeSrc = qrisImageUrl || 'Qris RT005.jpeg';
 
             if (displayMerchant) displayMerchant.innerText = qrisMerchantName;
-
-            if (qrisImageBase64) {
-                if (imgWarga) { imgWarga.src = qrisImageBase64; imgWarga.classList.remove('hidden'); }
-                if (placeholder) placeholder.classList.add('hidden');
-                if (btnDl) btnDl.classList.remove('hidden');
-                if (prevBox && prevImg) { prevImg.src = qrisImageBase64; prevBox.classList.remove('hidden'); }
-            } else {
-                if (imgWarga) imgWarga.classList.add('hidden');
-                if (placeholder) placeholder.classList.remove('hidden');
-                if (btnDl) btnDl.classList.add('hidden');
-                if (prevBox) prevBox.classList.add('hidden');
+            if (imgWarga) imgWarga.src = activeSrc;
+            if (btnDl) btnDl.href = activeSrc;
+            if (prevImg) {
+                prevImg.style.display = 'inline-block';
+                prevImg.src = activeSrc;
             }
-        }
-
-        function downloadGambarQRIS() {
-            if (!qrisImageBase64) return;
-            const a = document.createElement('a');
-            a.href = qrisImageBase64;
-            a.download = `QRIS_${namaRT.replace(/\s+/g, '_')}.jpg`;
-            a.click();
         }
 
         function hitungKodeUnikRumah(subjekStr) {
@@ -2267,7 +2277,7 @@
         function previewBuktiWarga(e) {
             const file = e.target.files[0];
             if (!file) return;
-            kompresGambarBase64(file, 420, 0.65, (base64Str) => {
+            kompresGambarBase64(file, 280, 0.45, (base64Str) => {
                 tempBuktiWargaBase64 = base64Str;
                 const prev = document.getElementById('qrisBuktiPreview');
                 prev.src = base64Str;
